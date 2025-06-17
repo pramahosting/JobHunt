@@ -1,12 +1,16 @@
 # ================================
 # frontend_ui/app.py (Streamlit UI)
 # ================================
-import streamlit as st
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from job_scraper.job_scraper import get_all_jobs
 from resume_matcher.match_resume import match_resume_to_jobs
 from cover_letter_generator.cover_letter import generate_cover_letter
 from excel_exporter.export_excel import export_to_excel
 
+import streamlit as st
 import docx2txt
 import fitz  # PyMuPDF
 import tempfile
