@@ -12,8 +12,8 @@ import fitz  # PyMuPDF
 import tempfile
 import base64
 
-st.set_page_config(page_title="JobIntel Agent", layout="wide")
-st.title("💼 JobIntel Agent")
+st.set_page_config(page_title="JobHunt Agent", layout="wide")
+st.title("💼 JobHunt Agent")
 
 # Function to extract text from resume file
 def extract_text_from_resume(uploaded_file, file_type):
@@ -73,7 +73,7 @@ with st.container():
     salary_max = st.number_input("Maximum Salary", min_value=0, value=200000, step=1000)
 
 # Run Agent Button
-if st.button("🚀 Run JobIntel Agent") and resume_text:
+if st.button("🚀 Run Agent") and resume_text:
     with st.spinner("Scraping jobs and matching resume..."):
         job_list = get_all_jobs(role, location, domain, job_type, salary_min, salary_max)
         matched_jobs = match_resume_to_jobs(resume_text, job_list)
