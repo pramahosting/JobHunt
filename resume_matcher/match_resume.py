@@ -1,44 +1,37 @@
 # ================================
 # resume_matcher/match_resume.py
 # ================================
+from difflib import SequenceMatcher
 import re
 
-def extract_keywords(text):
-    soft_skills = ["communication", "collaboration", "leadership", "problem solving", "teamwork"]
-    tools = ["excel", "tableau", "power bi", "sql", "python", "jira", "confluence"]
-    experience_matches = re.findall(r"(\d+)\+?\s+years?", text.lower())
-    return {
-        "soft_skills": [s for s in soft_skills if s in text.lower()],
-        "tools": [t for t in tools if t in text.lower()],
-        "experience_years": sum(map(int, experience_matches)) if experience_matches else 0,
-        "responsibilities": [line.strip() for line in text.split("\n") if any(word in line.lower() for word in ["led", "managed", "developed", "analyzed", "designed"])]
-    }
+def clean_text(text):
+    if not text:
+        return ""
+    return re.sub(r'\s+', ' ', text.lower().strip())
 
-def match_resume_to_job(resume_text, job):
-    resume_features = extract_keywords(resume_text)
-    job_features = extract_keywords(job.get("description", ""))
+def compute_score(resume_text, job_description):
+    resume_clean = clean_text(resume_text)
+    job_clean = clean_text(job_description)
+    return int(SequenceMatcher(None, resume_clean, job_clean).ratio() * 100)
 
-    match_score = 0
-    total_weights = 0
+def match_resume_to_jobs(resume_text, job_list):
+    matched_jobs = []
+    resume_clean = clean_text(resume_text)
 
-    if resume_features['soft_skills'] and job_features['soft_skills']:
-        common = set(resume_features['soft_skills']) & set(job_features['soft_skills'])
-        match_score += len(common) * 10
-        total_weights += 30
+    for job in job_list:
+        job_desc = clean_text(job.get("description", ""))
+        score = compute_score(resume_clean, job_desc)
 
-    if resume_features['tools'] and job_features['tools']:
-        common = set(resume_features['tools']) & set(job_features['tools'])
-        match_score += len(common) * 10
-        total_weights += 30
+        if score >= 50:  # Only include reasonable matches
+            matched_jobs.append({
+                "title": job.get("title"),
+                "company": job.get("company"),
+                "location": job.get("location"),
+                "description": job.get("description"),
+                "link": job.get("link"),
+                "score": score
+            })
 
-    if resume_features['experience_years'] and job_features['experience_years']:
-        years_match = min(resume_features['experience_years'], job_features['experience_years']) / max(resume_features['experience_years'], job_features['experience_years'])
-        match_score += years_match * 20
-        total_weights += 20
+    # Sort jobs by score descending
+    return sorted(matched_jobs, key=lambda x: x["score"], reverse=True)
 
-    if resume_features['responsibilities'] and job_features['responsibilities']:
-        common = set(resume_features['responsibilities']) & set(job_features['responsibilities'])
-        match_score += len(common) * 5
-        total_weights += 20
-
-    return round((match_score / total_weights) * 100) if total_weights else 0
