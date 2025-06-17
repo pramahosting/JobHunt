@@ -2,106 +2,108 @@
 # frontend_ui/app.py (Streamlit UI)
 # ================================
 import streamlit as st
-import sys
-import os
-import io
-from PyPDF2 import PdfReader
-import docx2txt
-
-# Add parent directory to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from job_scraper.job_scraper import get_all_jobs
 from resume_matcher.match_resume import match_resume_to_jobs
 from cover_letter_generator.cover_letter import generate_cover_letter
 from excel_exporter.export_excel import export_to_excel
 
+import docx2txt
+import fitz  # PyMuPDF
+import tempfile
+import base64
+
 st.set_page_config(page_title="JobIntel Agent", layout="wide")
-
 st.title("💼 JobIntel Agent")
-st.markdown("AI-powered tool to find, match, and apply for jobs intelligently.")
 
-# ---------------------- Resume Input Section ----------------------
-with st.expander("📄 Resume Upload / Paste", expanded=True):
-    resume_text = ""
-    input_method = st.radio("Select Resume Input Method", ["Upload File", "Paste Text"], horizontal=True)
+# Function to extract text from resume file
+def extract_text_from_resume(uploaded_file, file_type):
+    if file_type == "docx":
+        try:
+            return docx2txt.process(uploaded_file)
+        except Exception:
+            return "Could not read .docx file"
 
-    if input_method == "Upload File":
-        uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx, .doc)", type=["pdf", "docx", "doc"])
-        if uploaded_file:
-            file_type = uploaded_file.type
-            if file_type == "application/pdf":
-                reader = PdfReader(uploaded_file)
-                resume_text = "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
-            elif file_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
-                resume_text = docx2txt.process(uploaded_file)
-            else:
-                st.warning("Unsupported file format.")
+    elif file_type == "pdf":
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_file_path = tmp_file.name
+
+            doc = fitz.open(tmp_file_path)
+            text = ""
+            for page in doc:
+                text += page.get_text()
+            return text
+        except Exception:
+            return "Could not read PDF file"
+
+    elif file_type == "doc":
+        return "Legacy .doc format not supported directly. Please convert to .docx"
+
+    return "Unsupported format"
+
+# Upload Resume Box
+with st.container():
+    st.header("📄 Upload Your Resume")
+    uploaded_file = st.file_uploader("Upload your resume (.pdf or .docx)", type=["pdf", "docx"])
+    pasted_resume = st.text_area("Or paste your resume text here")
+
+resume_text = ""
+if uploaded_file:
+    file_type = uploaded_file.name.split(".")[-1].lower()
+    resume_text = extract_text_from_resume(uploaded_file, file_type)
+    if "Could not" in resume_text or "Unsupported" in resume_text:
+        st.error(resume_text)
+        resume_text = ""
     else:
-        resume_text = st.text_area("Paste your resume text here", height=300)
+        st.success("Resume uploaded and processed successfully.")
+        st.text_area("Extracted Resume Text", resume_text, height=250)
+elif pasted_resume:
+    resume_text = pasted_resume
+    st.success("Resume pasted and ready.")
 
-    if resume_text:
-        st.success("✅ Resume loaded successfully!")
-
-# ---------------------- Job Search Criteria Section ----------------------
-with st.expander("🔍 Job Search Criteria", expanded=True):
-    role = st.text_input("Role Title", value="Business Analyst")
+# Job Search Criteria Box
+with st.container():
+    st.header("🎯 Job Search Criteria")
+    role = st.text_input("Target Role", value="Business Analyst")
     location = st.text_input("Location", value="Sydney")
-    domain = st.text_input("Domain/Industry", value="Banking and Financial Services")
-    job_type = st.selectbox("Job Type", ["", "Full-time", "Part-time", "Contract", "Temporary"])
-    min_salary = st.number_input("Minimum Salary (AUD)", value=0)
-    max_salary = st.number_input("Maximum Salary (AUD)", value=0)
+    domain = st.text_input("Industry/Domain", value="Banking and Financial Services")
+    job_type = st.selectbox("Job Type", ["Any", "Full-time", "Part-time", "Contract"])
+    salary_min = st.number_input("Minimum Salary", min_value=0, value=80000, step=1000)
+    salary_max = st.number_input("Maximum Salary", min_value=0, value=200000, step=1000)
 
-# ---------------------- Run Agent Button ----------------------
-if st.button("🚀 Run Agent"):
-    if not resume_text.strip():
-        st.error("Please provide your resume before proceeding.")
-    else:
-        with st.spinner("Scraping and analyzing jobs..."):
-            all_jobs = get_all_jobs(
-                role=role,
-                location=location,
-                domain=domain,
-                job_type=job_type,
-                min_salary=min_salary,
-                max_salary=max_salary
-            )
+# Run Agent Button
+if st.button("🚀 Run JobIntel Agent") and resume_text:
+    with st.spinner("Scraping jobs and matching resume..."):
+        job_list = get_all_jobs(role, location, domain, job_type, salary_min, salary_max)
+        matched_jobs = match_resume_to_jobs(resume_text, job_list)
 
-            matched_jobs = match_resume_to_jobs(resume_text, all_jobs)
+        if matched_jobs:
+            # Generate cover letters
+            for job in matched_jobs:
+                job["cover_letter"] = generate_cover_letter(resume_text, job)
 
-            if not matched_jobs:
-                st.warning("No matching jobs found.")
-            else:
-                st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
+            # Export to Excel
+            excel_file_path = export_to_excel(matched_jobs)
+            excel_filename = excel_file_path.split("/")[-1]
 
-                # Generate Cover Letters and Table
-                export_data = []
-                for i, job in enumerate(matched_jobs):
-                    st.markdown(f"### 🏢 {job['title']} at {job['company']}")
-                    st.markdown(f"- 📍 Location: {job['location']}")
-                    st.markdown(f"- 📝 Score: **{job['score']}%**")
-                    st.markdown(f"- 🔗 [Apply Now]({job['link']})")
+            # Show download link
+            with open(excel_file_path, "rb") as f:
+                excel_data = f.read()
+            b64 = base64.b64encode(excel_data).decode()
+            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{excel_filename}" style="font-size:18px;">📥 Download Excel Report</a>'
+            st.markdown(href, unsafe_allow_html=True)
 
-                    cover_letter = generate_cover_letter(resume_text, job)
-                    with st.expander("📄 Cover Letter"):
-                        st.write(cover_letter)
-
-                    export_data.append({
-                        "Job Title": job['title'],
-                        "Company": job['company'],
-                        "Location": job['location'],
-                        "Score": job['score'],
-                        "Link": job['link'],
-                        "Cover Letter": cover_letter
-                    })
-
-                # Export to Excel
-                excel_file_path = export_to_excel(export_data)
-                with open(excel_file_path, "rb") as f:
-                    st.download_button(
-                        label="📥 Download Job Matches (Excel)",
-                        data=f,
-                        file_name="job_matches.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+            # Show results
+            st.subheader("📊 Matching Job Results")
+            for job in matched_jobs:
+                st.markdown(f"**{job['title']}** at *{job['company']}* - {job['location']}")
+                st.markdown(f"✅ Match Score: **{job['score']}%**")
+                st.markdown(f"📝 Cover Letter:\n{job['cover_letter']}")
+                st.markdown(f"🔗 [Apply Here]({job['link']})", unsafe_allow_html=True)
+                st.markdown("---")
+        else:
+            st.warning("No strong matches found.")
+elif st.button("🚀 Run JobIntel Agent"):
+    st.warning("Please upload or paste your resume first.")
 
