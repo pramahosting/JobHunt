@@ -7,4 +7,3 @@ docx2txt
 openpyxl
 PyMuPDF
 pdfplumber
-fitz  # PyMuPDF
