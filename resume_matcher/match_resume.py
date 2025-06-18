@@ -1,9 +1,12 @@
 # ================================
 # resume_matcher/match_resume.py
 # ================================
+# ================================
+# resume_matcher/match_resume.py
+# ================================
 from difflib import SequenceMatcher
 import re
-import pandas as pd  # ✅ Added
+import pandas as pd
 
 def clean_text(text):
     if not text:
@@ -32,9 +35,10 @@ def match_resume_to_jobs(resume_text, job_list):
                 "Company": job.get("Company") or job.get("company"),
                 "Location": job.get("Location") or job.get("location"),
                 "description": job.get("description"),
-                "link": job.get("Apply Link") or job.get("link"),
-                "score": score
+                "Apply Link": job.get("Apply Link") or job.get("link"),
+                "Score": score
             })
 
-    # ✅ Return as DataFrame
-    return pd.DataFrame(sorted(matched_jobs, key=lambda x: x["score"], reverse=True))
+    # Return sorted DataFrame by Score descending
+    return pd.DataFrame(sorted(matched_jobs, key=lambda x: x["Score"], reverse=True))
+
