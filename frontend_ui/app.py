@@ -21,16 +21,17 @@ st.set_page_config(layout="wide")
 st.title("JobHunt Agent – Smart Job Search")
 
 # === Upload Resume (Box) ===
-st.markdown("""
-# <div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-<h4>Upload Resume</h4>
-""", unsafe_allow_html=True)
+with st.container():
+    st.markdown("""
+    <div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+    <h4>Upload Resume</h4>
+    """, unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
-if uploaded_file:
-    st.success(f"✅ Uploaded: **{uploaded_file.name}**")
+    uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
+    if uploaded_file:
+        st.success(f"✅ Uploaded: **{uploaded_file.name}**")
 
-st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria (NO Box now) ===
 # ❌ REMOVED border box: removed surrounding <div> with border styles
