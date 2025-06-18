@@ -32,11 +32,9 @@ if uploaded_file:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# === Enter Search Criteria (Box) ===
-st.markdown("""
-<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-<h4>Enter Search Criteria</h4>
-""", unsafe_allow_html=True)
+# === Enter Search Criteria (NO Box now) ===
+# ❌ REMOVED border box: removed surrounding <div> with border styles
+st.subheader("Enter Search Criteria")  # ✅ CHANGED to simple heading without box
 
 col1, col2 = st.columns(2)
 with col1:
@@ -60,7 +58,6 @@ with col5:
 with col6:
     max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
 
-st.markdown("</div>", unsafe_allow_html=True)
 
 # === Extract Resume Text ===
 def extract_resume_text(uploaded_file):
@@ -83,10 +80,31 @@ def extract_resume_text(uploaded_file):
                     return ""
     return ""
 
+
 resume_text = extract_resume_text(uploaded_file)
+
+
+# === Custom CSS for Blue Run Agent Button ===
+st.markdown("""
+<style>
+div.stButton > button:first-child {
+    background-color: #007BFF;  /* Bootstrap primary blue */
+    color: white;
+    height: 3em;
+    width: 12em;
+    border-radius: 6px;
+    font-weight: 600;
+}
+div.stButton > button:first-child:hover {
+    background-color: #0056b3;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # === Run Agent ===
 run_button = st.button("🚀 Run Agent")
+
 if run_button:
     if not uploaded_file:
         st.warning("Please upload your resume.")
@@ -96,9 +114,7 @@ if run_button:
         with st.spinner("🔍 Searching for matching jobs..."):
             jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
 
-            if not jobs:
-                st.warning("No jobs found. Please refine your criteria.")
-            else:
+            if not jobs.empty and len(jobs) > 0:
                 matched_jobs = match_resume_to_jobs(resume_text, jobs)
                 matched_jobs["Cover Letter"] = matched_jobs.apply(
                     lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
@@ -109,8 +125,14 @@ if run_button:
                 st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
                 st.download_button("📥 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
 
-                st.dataframe(matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
-                             use_container_width=True)
+                st.dataframe(
+                    matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
+                    use_container_width=True
+                )
+            else:
+                st.warning("No jobs found. Please refine your criteria.")
 
-else:
-    st.info("Please upload your resume and enter the target role to proceed.")
+# ❌ REMOVED initial info message to hide prompt at start
+# else:
+#     st.info("Please upload your resume and enter the target role to proceed.")
+
