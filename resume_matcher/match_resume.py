@@ -3,6 +3,7 @@
 # ================================
 from difflib import SequenceMatcher
 import re
+import pandas as pd  # ✅ Added
 
 def clean_text(text):
     if not text:
@@ -19,15 +20,13 @@ def match_resume_to_jobs(resume_text, job_list):
     resume_clean = clean_text(resume_text)
 
     for job in job_list:
-        # ✅ FIXED: Check if job is dict before using .get()
         if not isinstance(job, dict):
-            continue  # skip non-dict entries
+            continue
 
-        # ✅ FIXED: Use correct keys matching job dict structure, e.g. "Job Title" not "title"
         job_desc = clean_text(job.get("description", ""))
         score = compute_score(resume_clean, job_desc)
 
-        if score >= 50:  # Only include reasonable matches
+        if score >= 50:
             matched_jobs.append({
                 "Job Title": job.get("Job Title") or job.get("title"),
                 "Company": job.get("Company") or job.get("company"),
@@ -37,5 +36,5 @@ def match_resume_to_jobs(resume_text, job_list):
                 "score": score
             })
 
-    # Sort jobs by score descending
-    return sorted(matched_jobs, key=lambda x: x["score"], reverse=True)
+    # ✅ Return as DataFrame
+    return pd.DataFrame(sorted(matched_jobs, key=lambda x: x["score"], reverse=True))
