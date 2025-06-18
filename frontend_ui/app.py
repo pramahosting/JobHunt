@@ -1,17 +1,13 @@
 # ================================
 # frontend_ui/app.py (Streamlit UI)
 # ================================
-import sys
-import os
-
-# Add parent directory to sys.path so imports from sibling packages work
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import streamlit as st
 from job_scraper.job_scraper import get_all_jobs
 from resume_matcher.match_resume import match_resume_to_jobs
 from cover_letter_generator.cover_letter import generate_cover_letter
 from excel_exporter.export_excel import export_to_excel
+import os
+import tempfile
 import mimetypes
 import docx2txt
 import pdfplumber
@@ -89,5 +85,3 @@ if st.button("🚀 Run JobIntel Agent") and resume_text and role:
             st.dataframe(matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]], use_container_width=True)
 else:
     st.info("Please upload your resume and enter the target role to proceed.")
-
-
