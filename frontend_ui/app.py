@@ -18,37 +18,49 @@ import fitz  # PyMuPDF
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("📌 JobIntel Agent – Smart Resume Matcher")
+st.title("JobHunt Agent – Smart Job Search")
 
-# === Combined Upload + Search Criteria ===
-with st.container():
-    st.subheader("📄 Upload Resume & 🔍 Enter Search Criteria")
+# === Upload Resume (Box) ===
+st.markdown("""
+<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+<h4>Upload Resume</h4>
+""", unsafe_allow_html=True)
 
-    uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
-    if uploaded_file:
-        st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
+uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
+if uploaded_file:
+    st.success(f"✅ Uploaded: **{uploaded_file.name}**")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        role = st.text_input("🎯 Target Role", placeholder="e.g., Data Architect")
+st.markdown("</div>", unsafe_allow_html=True)
 
-    with col2:
-        locations = ["All", "Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin"]
-        location = st.selectbox("📍 Location", options=locations)
+# === Enter Search Criteria (Box) ===
+st.markdown("""
+<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+<h4>Enter Search Criteria</h4>
+""", unsafe_allow_html=True)
 
-    col3, col4 = st.columns(2)
-    with col3:
-        industries = ["All", "Banking and Financial Services", "Healthcare", "Technology", "Retail", "Government"]
-        industry = st.selectbox("🏭 Industry", options=industries)
+col1, col2 = st.columns(2)
+with col1:
+    role = st.text_input("🎯 Target Role", placeholder="e.g., Data Architect")
 
-    with col4:
-        job_type = st.selectbox("💼 Job Type", ["All", "Full-time", "Part-time", "Contract", "Temporary"])
+with col2:
+    locations = ["All", "Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin"]
+    location = st.selectbox("📍 Location", options=locations)
 
-    col5, col6 = st.columns(2)
-    with col5:
-        min_salary = st.number_input("💲 Min Salary", value=0, step=1000)
-    with col6:
-        max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
+col3, col4 = st.columns(2)
+with col3:
+    industries = ["All", "Banking and Financial Services", "Healthcare", "Technology", "Retail", "Government", "Manufacturing", "Mining", "Consulting"]
+    industry = st.selectbox("🏭 Industry", options=industries)
+
+with col4:
+    job_type = st.selectbox("💼 Job Type", ["All", "Full-time", "Part-time", "Contract", "Temporary"])
+
+col5, col6 = st.columns(2)
+with col5:
+    min_salary = st.number_input("💲 Min Salary", value=0, step=1000)
+with col6:
+    max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # === Extract Resume Text ===
 def extract_resume_text(uploaded_file):
@@ -74,24 +86,31 @@ def extract_resume_text(uploaded_file):
 resume_text = extract_resume_text(uploaded_file)
 
 # === Run Agent ===
-if st.button("🚀 Run JobIntel Agent") and resume_text and role:
-    with st.spinner("🔍 Searching for matching jobs..."):
-        jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
+run_button = st.button("🚀 Run Agent")
+if run_button:
+    if not uploaded_file:
+        st.warning("Please upload your resume.")
+    elif not role:
+        st.warning("Please enter the target role.")
+    else:
+        with st.spinner("🔍 Searching for matching jobs..."):
+            jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
 
-        if not jobs:
-            st.warning("No jobs found. Please refine your criteria.")
-        else:
-            matched_jobs = match_resume_to_jobs(resume_text, jobs)
-            matched_jobs["Cover Letter"] = matched_jobs.apply(
-                lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
-            )
+            if not jobs:
+                st.warning("No jobs found. Please refine your criteria.")
+            else:
+                matched_jobs = match_resume_to_jobs(resume_text, jobs)
+                matched_jobs["Cover Letter"] = matched_jobs.apply(
+                    lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
+                )
 
-            excel_file = export_to_excel(matched_jobs)
+                excel_file = export_to_excel(matched_jobs)
 
-            st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
-            st.download_button("📥 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
+                st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
+                st.download_button("📥 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
 
-            st.dataframe(matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
-                         use_container_width=True)
+                st.dataframe(matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
+                             use_container_width=True)
+
 else:
     st.info("Please upload your resume and enter the target role to proceed.")
