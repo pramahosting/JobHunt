@@ -1,6 +1,10 @@
 # ================================
 # frontend_ui/app.py (Streamlit UI)
 # ================================
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 from job_scraper.job_scraper import get_all_jobs
 from resume_matcher.match_resume import match_resume_to_jobs
