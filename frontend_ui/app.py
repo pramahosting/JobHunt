@@ -18,18 +18,15 @@ import fitz  # PyMuPDF
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("📌 JobHunt Agent – Smart Job Search")
+st.title("📌 JobIntel Agent – Smart Resume Matcher")
 
-# --- Upload Resume ---
+# === Combined Upload + Search Criteria ===
 with st.container():
-    st.subheader("📄 Upload Resume")
+    st.subheader("📄 Upload Resume & 🔍 Enter Search Criteria")
+
     uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
     if uploaded_file:
         st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
-
-# --- Enter Search Criteria ---
-with st.container():
-    st.subheader("🔍 Enter Search Criteria")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -53,11 +50,11 @@ with st.container():
     with col6:
         max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
 
-# --- Extract Resume Text ---
+# === Extract Resume Text ===
 def extract_resume_text(uploaded_file):
     if uploaded_file:
         mime_type, _ = mimetypes.guess_type(uploaded_file.name)
-        if uploaded_file.name.endswith(".docx") or uploaded_file.name.endswith(".doc"):
+        if uploaded_file.name.endswith((".docx", ".doc")):
             try:
                 return docx2txt.process(uploaded_file)
             except Exception:
@@ -76,8 +73,8 @@ def extract_resume_text(uploaded_file):
 
 resume_text = extract_resume_text(uploaded_file)
 
-# --- Run Agent ---
-if st.button("🚀 Run Agent") and resume_text and role:
+# === Run Agent ===
+if st.button("🚀 Run JobIntel Agent") and resume_text and role:
     with st.spinner("🔍 Searching for matching jobs..."):
         jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
 
@@ -91,7 +88,6 @@ if st.button("🚀 Run Agent") and resume_text and role:
 
             excel_file = export_to_excel(matched_jobs)
 
-            # --- Display Results ---
             st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
             st.download_button("📥 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
 
@@ -99,5 +95,3 @@ if st.button("🚀 Run Agent") and resume_text and role:
                          use_container_width=True)
 else:
     st.info("Please upload your resume and enter the target role to proceed.")
-
-
