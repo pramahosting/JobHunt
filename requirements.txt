@@ -2,6 +2,7 @@ streamlit
 requests
 beautifulsoup4
 pandas
+fitz  # PyMuPDF
 PyPDF2
 docx2txt
 openpyxl
