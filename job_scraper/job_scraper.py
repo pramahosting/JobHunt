@@ -51,9 +51,6 @@ def get_jobs_from_adzuna(role, location, industry, job_type, salary_min, salary_
         print("Adzuna API error:", e)
         return []
 
-def get_jobs_from_browse_ai(role, location):
-    return []  # Placeholder for Browse AI logic
-
 def deduplicate_jobs(job_list):
     seen = set()
     unique_jobs = []
@@ -67,6 +64,5 @@ def deduplicate_jobs(job_list):
 def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
     jobs = []
     jobs += get_jobs_from_adzuna(role, location, industry, job_type, salary_min, salary_max)
-    jobs += get_jobs_from_browse_ai(role, location)
     return deduplicate_jobs(jobs)
 
