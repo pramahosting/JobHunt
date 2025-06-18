@@ -20,18 +20,24 @@ import pandas as pd
 st.set_page_config(layout="wide")
 st.title("JobHunt Agent – Smart Job Search")
 
-# === Upload Resume (Box, no gap, subheader instead of <h4>) ===
-st.markdown("""<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">""", unsafe_allow_html=True)
-st.subheader("Upload Resume")  # ✅ CHANGED to match "Enter Search Criteria"
+# === Upload Resume (No Box, No Description Text) ===
+st.subheader("Upload Resume")
 
-uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
-if uploaded_file:
-    st.success(f"✅ Uploaded: **{uploaded_file.name}**")
+uploaded_file = None
+if "uploaded" not in st.session_state:
+    st.session_state.uploaded = None
 
-st.markdown("</div>", unsafe_allow_html=True)
+if st.session_state.uploaded is None:
+    uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"])
+    if uploaded_file:
+        st.session_state.uploaded = uploaded_file
+        st.rerun()
+else:
+    uploaded_file = st.session_state.uploaded
+    st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
 
 # === Enter Search Criteria ===
-st.subheader("Enter Search Criteria")  # ✅ No border box here
+st.subheader("Enter Search Criteria")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -108,31 +114,32 @@ if run_button:
         with st.spinner("🔍 Searching for matching jobs..."):
             jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
 
-            if not jobs or len(jobs) == 0:
-                st.warning("No jobs found. Please refine your criteria.")
-            else:
-                matched_jobs = match_resume_to_jobs(resume_text, jobs)
+            if isinstance(jobs, pd.DataFrame):
+                if jobs.empty:
+                    st.warning("No jobs found. Please refine your criteria.")
+                    st.stop()
+            elif isinstance(jobs, list):
+                if len(jobs) == 0:
+                    st.warning("No jobs found. Please refine your criteria.")
+                    st.stop()
+                else:
+                    jobs = pd.DataFrame(jobs)
 
-                # ✅ Ensure DataFrame before using .apply
-                if isinstance(matched_jobs, list):
-                    matched_jobs = pd.DataFrame(matched_jobs)
+            matched_jobs = match_resume_to_jobs(resume_text, jobs)
 
-                matched_jobs["Cover Letter"] = matched_jobs.apply(
-                    lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
-                )
+            if isinstance(matched_jobs, list):
+                matched_jobs = pd.DataFrame(matched_jobs)
 
-                excel_file = export_to_excel(matched_jobs)
+            matched_jobs["Cover Letter"] = matched_jobs.apply(
+                lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
+            )
 
-                st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
-                st.download_button("📥 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
+            excel_file = export_to_excel(matched_jobs)
 
-                st.dataframe(
-                    matched_jobs[["Job Title", "Company", "Location", "score", "link", "Cover Letter"]],
-                    use_container_width=True
-                )
+            st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
+            st.download_button("📥 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
 
-# ❌ REMOVED: initial info message to hide prompt at start
-# else:
-#     st.info("Please upload your resume and enter the target role to proceed.")
-
-
+            st.dataframe(
+                matched_jobs[["Job Title", "Company", "Location", "score", "link", "Cover Letter"]],
+                use_container_width=True
+            )
