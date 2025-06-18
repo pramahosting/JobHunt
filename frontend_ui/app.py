@@ -18,7 +18,7 @@ import fitz  # PyMuPDF
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("📌 JobIntel Agent – Smart Resume Matcher")
+st.title("📌 JobHunt Agent – Smart Job Search")
 
 # --- Upload Resume ---
 with st.container():
@@ -77,7 +77,7 @@ def extract_resume_text(uploaded_file):
 resume_text = extract_resume_text(uploaded_file)
 
 # --- Run Agent ---
-if st.button("🚀 Run JobIntel Agent") and resume_text and role:
+if st.button("🚀 Run Agent") and resume_text and role:
     with st.spinner("🔍 Searching for matching jobs..."):
         jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
 
