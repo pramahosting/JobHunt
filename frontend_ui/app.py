@@ -22,7 +22,7 @@ st.title("JobHunt Agent – Smart Job Search")
 
 # === Upload Resume (Box) ===
 st.markdown("""
-<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+# <div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
 <h4>Upload Resume</h4>
 """, unsafe_allow_html=True)
 
