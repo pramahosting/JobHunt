@@ -20,22 +20,18 @@ import pandas as pd
 st.set_page_config(layout="wide")
 st.title("JobHunt Agent – Smart Job Search")
 
-# === Upload Resume (Box) ===
-with st.container():
-    st.markdown("""
-   # <div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-    <h4>Upload Resume</h4>
-    """, unsafe_allow_html=True)
+# === Upload Resume (Box, no gap, subheader instead of <h4>) ===
+st.markdown("""<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">""", unsafe_allow_html=True)
+st.subheader("Upload Resume")  # ✅ CHANGED to match "Enter Search Criteria"
 
-    uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
-    if uploaded_file:
-        st.success(f"✅ Uploaded: **{uploaded_file.name}**")
+uploaded_file = st.file_uploader("Upload your resume (.pdf, .docx)", type=["pdf", "docx", "doc"])
+if uploaded_file:
+    st.success(f"✅ Uploaded: **{uploaded_file.name}**")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-# === Enter Search Criteria (NO Box now) ===
-# ❌ REMOVED border box: removed surrounding <div> with border styles
-st.subheader("Enter Search Criteria")  # ✅ CHANGED to simple heading without box
+# === Enter Search Criteria ===
+st.subheader("Enter Search Criteria")  # ✅ No border box here
 
 col1, col2 = st.columns(2)
 with col1:
@@ -59,7 +55,6 @@ with col5:
 with col6:
     max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
 
-
 # === Extract Resume Text ===
 def extract_resume_text(uploaded_file):
     if uploaded_file:
@@ -81,15 +76,13 @@ def extract_resume_text(uploaded_file):
                     return ""
     return ""
 
-
 resume_text = extract_resume_text(uploaded_file)
-
 
 # === Custom CSS for Blue Run Agent Button ===
 st.markdown("""
 <style>
 div.stButton > button:first-child {
-    background-color: #007BFF;  /* Bootstrap primary blue */
+    background-color: #007BFF;
     color: white;
     height: 3em;
     width: 12em;
@@ -115,8 +108,15 @@ if run_button:
         with st.spinner("🔍 Searching for matching jobs..."):
             jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
 
-            if not jobs.empty and len(jobs) > 0:
+            if not jobs or len(jobs) == 0:
+                st.warning("No jobs found. Please refine your criteria.")
+            else:
                 matched_jobs = match_resume_to_jobs(resume_text, jobs)
+
+                # ✅ Ensure DataFrame before using .apply
+                if isinstance(matched_jobs, list):
+                    matched_jobs = pd.DataFrame(matched_jobs)
+
                 matched_jobs["Cover Letter"] = matched_jobs.apply(
                     lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
                 )
@@ -127,13 +127,12 @@ if run_button:
                 st.download_button("📥 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
 
                 st.dataframe(
-                    matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
+                    matched_jobs[["Job Title", "Company", "Location", "score", "link", "Cover Letter"]],
                     use_container_width=True
                 )
-            else:
-                st.warning("No jobs found. Please refine your criteria.")
 
-# ❌ REMOVED initial info message to hide prompt at start
+# ❌ REMOVED: initial info message to hide prompt at start
 # else:
 #     st.info("Please upload your resume and enter the target role to proceed.")
+
 
