@@ -1,9 +1,8 @@
 # ================================
 # job_scraper/job_scraper.py
 # ================================
-# job_scraper/job_scraper.py
-
 import requests
+import pandas as pd  # ✅ ADDED: To convert job list to DataFrame
 
 # Adzuna API credentials
 ADZUNA_APP_ID = "638c0962"
@@ -69,6 +68,10 @@ def deduplicate_jobs(job_list):
 def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
     jobs = []
     jobs += get_jobs_from_adzuna(role, location, industry, job_type, salary_min, salary_max)
-    return deduplicate_jobs(jobs)
+    deduped_jobs = deduplicate_jobs(jobs)
+
+    # ✅✅✅ MODIFICATION: Convert to DataFrame before returning
+    return pd.DataFrame(deduped_jobs)
+
 
 
