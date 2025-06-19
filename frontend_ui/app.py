@@ -26,22 +26,17 @@ st.markdown(
         color: white;
         font-size: 28px;
         font-weight: 700;
-        padding: 12px;
+        padding: 10px;
         border-radius: 6px;
         text-align: center;
-        margin-top: -30px;  /* ⬅️ Reduce top space */
-        margin-bottom: 15px;
+        margin-top: -40px;  /* ⬅️ Reduce top space */
+        margin-bottom: 12px;
     }
     </style>
     <div class="main-title">JobHunt Agent – Smart Job Search</div>
     """,
     unsafe_allow_html=True
 )
-
-# Draw a 2px thick horizontal line below the title
-#st.markdown("""
-#    <hr style="border:none; height:2px; background-color:#000000; margin-top:5px; margin-bottom:20px;">
-#""", unsafe_allow_html=True)
 
 # === Upload Resume (with uploader bar and messages) ===
 st.subheader("Upload Resume")
@@ -67,12 +62,12 @@ message_container = st.empty()
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
     with message_container.container():
-        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
+        #st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
         st.success("✅ Uploaded: " + uploaded_file.name)
 elif st.session_state.uploaded:
     uploaded_file = st.session_state.uploaded
     with message_container.container():
-        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
+        #st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
         st.success("✅ Uploaded: " + uploaded_file.name)
 else:
     # Pre-reserve blank space to prevent layout shift
