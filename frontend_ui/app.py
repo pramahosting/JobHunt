@@ -18,7 +18,25 @@ import fitz  # PyMuPDF
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("JobHunt Agent – Smart Job Search")
+st.markdown(
+    """
+    <style>
+    .main-title {
+        background-color: #007BFF;  /* Bootstrap Primary Blue */
+        color: white;
+        font-size: 28px;
+        font-weight: 700;
+        padding: 12px;
+        border-radius: 6px;
+        text-align: center;
+        margin-top: -30px;  /* ⬅️ Reduce top space */
+        margin-bottom: 15px;
+    }
+    </style>
+    <div class="main-title">JobHunt Agent – Smart Job Search</div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Draw a 2px thick horizontal line below the title
 st.markdown("""
@@ -28,22 +46,38 @@ st.markdown("""
 # === Upload Resume (with uploader bar and messages) ===
 st.subheader("Upload Resume")
 
-# Minimal spacing between header and uploader
+# Reduce space between heading and uploader
 st.markdown("<div style='margin-top: -25px;'></div>", unsafe_allow_html=True)
 
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
 
-# Show uploader bar with no extra label space
-uploaded_file = st.file_uploader("Upload", type=["pdf", "docx", "doc"], key="file_uploader", label_visibility="collapsed")
+# Always show uploader bar with collapsed label to avoid extra space
+uploaded_file = st.file_uploader(
+    "Upload", 
+    type=["pdf", "docx", "doc"], 
+    key="file_uploader", 
+    label_visibility="collapsed"
+)
 
-# Message area appears only after upload
+# === Reserve message space ===
+message_container = st.empty()
+
+# === Upload logic and message rendering ===
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
-    st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
+    with message_container.container():
+        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
+        st.success("✅ Uploaded: " + uploaded_file.name)
 elif st.session_state.uploaded:
     uploaded_file = st.session_state.uploaded
-    st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
+    with message_container.container():
+        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
+        st.success("✅ Uploaded: " + uploaded_file.name)
+else:
+    # Pre-reserve blank space to prevent layout shift
+    with message_container.container():
+        st.markdown("<div style='height: 90px;'></div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Job Search Criteria")
