@@ -16,7 +16,7 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
         "app_key": ADZUNA_APP_KEY,
         "results_per_page": 20,
         "what": role,
- 	"content-type": "application/json",
+        "content-type": "application/json",
     }
 
     if location and location.lower() != "all":
@@ -33,8 +33,12 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
 
     try:
         response = requests.get(base_url, params=params)
+        print("🌐 Request URL:", response.url)
         response.raise_for_status()
         data = response.json()
+
+        print("✅ API call successful")
+        print(f"📦 Number of jobs in response: {len(data.get('results', []))}")
 
         jobs = []
         for job in data.get("results", []):
@@ -46,10 +50,10 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
                 "Job Type": job.get("contract_time", "N/A"),
                 "Source": "Adzuna",
                 "Description": job.get("description", ""),
-                "Source": "Adzuna",
-                "Link": job.get("redirect_url", "")
+                "Apply Link": job.get("redirect_url", "")
             })
 
+        print(f"✅ Jobs extracted: {len(jobs)}")
         return jobs
 
     except Exception as e:
@@ -70,19 +74,12 @@ def deduplicate_jobs(job_list):
 
 # --- Get All Jobs ---
 def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
-    # ✅ FIXED: Removed unused 'industry' from downstream call
+    print(f"🧠 Searching jobs for role: {role}, location: {location}, job type: {job_type}, salary range: {salary_min}-{salary_max}")
+    
     jobs = get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max)
-    #deduped_jobs = deduplicate_jobs(jobs)
-   
-        if jobs:
-            df = pd.DataFrame(jobs)
-            st.success(f"✅ Found {len(df)} job(s)")
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.warning("❌ No jobs found. Try different keywords or locations.")
+    print(f"🔍 Total jobs fetched from Adzuna: {len(jobs)}")
 
-    return pd.DataFrame(jobs)
+    deduped_jobs = deduplicate_jobs(jobs)
+    print(f"🧹 Total unique jobs after deduplication: {len(deduped_jobs)}")
 
-
-
-
+    return pd.DataFrame(deduped_jobs)
