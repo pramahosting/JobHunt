@@ -41,24 +41,38 @@ st.markdown(
 # === Upload Resume Section ===
 st.subheader("Upload Resume")
 
+# Minimal spacing between header and uploader
+st.markdown("<div style='margin-top: -35px;'></div>", unsafe_allow_html=True)
+
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
 
-# Always show file uploader bar
-uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"], key="file_uploader")
+# Always show uploader bar with collapsed label to avoid extra space
+uploaded_file = st.file_uploader(
+    "Upload", 
+    type=["pdf", "docx", "doc"], 
+    key="file_uploader", 
+    label_visibility="collapsed"
+)
 
-# Create a two-column layout for uploader + placeholder space
-u_col1, u_col2 = st.columns([1, 2])
+# === Reserve message space ===
+message_container = st.empty()
 
-with u_col1:
-    if uploaded_file:
-        st.session_state.uploaded = uploaded_file
-
-# Pre-allocated message display space
-with u_col2:
-    if st.session_state.uploaded:
-        uploaded_file = st.session_state.uploaded
-        st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
+# === Upload logic and message rendering ===
+if uploaded_file:
+    st.session_state.uploaded = uploaded_file
+    with message_container.container():
+        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
+        st.success("✅ Uploaded: " + uploaded_file.name)
+elif st.session_state.uploaded:
+    uploaded_file = st.session_state.uploaded
+    with message_container.container():
+        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
+        st.success("✅ Uploaded: " + uploaded_file.name)
+else:
+    # Pre-reserve blank space to prevent layout shift
+    with message_container.container():
+        st.markdown("<div style='height: 90px;'></div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Search Criteria")
