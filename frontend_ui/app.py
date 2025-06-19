@@ -28,22 +28,26 @@ st.markdown("""
 # === Upload Resume (with uploader bar and messages) ===
 st.subheader("Upload Resume")
 
+# Minimal spacing between header and uploader
+st.markdown("<div style='margin-top: -25px;'></div>", unsafe_allow_html=True)
+
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
 
-# Always show file uploader bar
-uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"], key="file_uploader")
+# Show uploader bar with no extra label space
+uploaded_file = st.file_uploader("Upload", type=["pdf", "docx", "doc"], key="file_uploader", label_visibility="collapsed")
 
-# Reserve a fixed-height placeholder to prevent layout shift
-upload_placeholder = st.empty()
-
+# Message area appears only after upload
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
     st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
-else:
-    if st.session_state.uploaded:
-        uploaded_file = st.session_state.uploaded
-        st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
+    st.info("✔ Resume uploaded successfully.")
+    st.success("You can now enter your search criteria below.")
+elif st.session_state.uploaded:
+    uploaded_file = st.session_state.uploaded
+    st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
+    st.info("✔ Resume uploaded successfully.")
+    st.success("You can now enter your search criteria below.")
 
 # === Enter Search Criteria ===
 st.subheader("Enter Job Search Criteria")
