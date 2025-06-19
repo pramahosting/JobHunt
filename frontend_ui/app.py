@@ -39,9 +39,9 @@ st.markdown(
 )
 
 # Draw a 2px thick horizontal line below the title
-st.markdown("""
-    <hr style="border:none; height:2px; background-color:#000000; margin-top:5px; margin-bottom:20px;">
-""", unsafe_allow_html=True)
+#st.markdown("""
+#    <hr style="border:none; height:2px; background-color:#000000; margin-top:5px; margin-bottom:20px;">
+#""", unsafe_allow_html=True)
 
 # === Upload Resume (with uploader bar and messages) ===
 st.subheader("Upload Resume")
