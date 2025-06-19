@@ -42,7 +42,7 @@ st.markdown(
 st.subheader("Upload Resume")
 
 # Minimal spacing between header and uploader
-st.markdown("<div style='margin-top: -45px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: -65px;'></div>", unsafe_allow_html=True)
 
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
@@ -56,7 +56,9 @@ uploaded_file = st.file_uploader(
 )
 
 # === Reserve message space ===
-message_container = st.empty()
+message_box = st.empty()
+message_box.markdown("""<div style="width:50%; ...">Your message here</div>""", unsafe_allow_html=True)
+
 # === Upload logic and message rendering ===
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
@@ -69,7 +71,7 @@ elif st.session_state.uploaded:
 else:
     # Pre-reserve blank space to prevent layout shift
     with message_container.container():
-        st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 80px;'></div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Search Criteria")
