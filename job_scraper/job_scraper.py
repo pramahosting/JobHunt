@@ -3,6 +3,7 @@
 # ================================
 import requests
 import pandas as pd
+import streamlit as st
 
 # --- Adzuna API credentials ---
 ADZUNA_APP_ID = "638c0962"
@@ -33,12 +34,12 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
 
     try:
         response = requests.get(base_url, params=params)
-        print("🌐 Request URL:", response.url)
+        st.write("🌐 Request URL:", response.url)
         response.raise_for_status()
         data = response.json()
 
-        print("✅ API call successful")
-        print(f"📦 Number of jobs in response: {len(data.get('results', []))}")
+        st.write("✅ API call successful")
+        st.write(f"📦 Number of jobs in response: {len(data.get('results', []))}")
 
         jobs = []
         for job in data.get("results", []):
@@ -53,12 +54,11 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
                 "Apply Link": job.get("redirect_url", "")
             })
 
-        print(f"✅ Jobs extracted: {len(jobs)}")
+        st.write(f"✅ Jobs extracted: {len(jobs)}")
         return jobs
 
     except Exception as e:
-        print("❌ Adzuna API error:", e)
-        print("Response content:", response.text if 'response' in locals() else "No response")
+        st.error(f"\u274c Adzuna API error: {e}")
         return []
 
 # --- Remove Duplicate Jobs ---
@@ -74,12 +74,12 @@ def deduplicate_jobs(job_list):
 
 # --- Get All Jobs ---
 def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
-    print(f"🧠 Searching jobs for role: {role}, location: {location}, job type: {job_type}, salary range: {salary_min}-{salary_max}")
+    st.info(f"🧠 Searching jobs for role: {role}, location: {location}, job type: {job_type}, salary range: {salary_min}-{salary_max}")
     
     jobs = get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max)
-    print(f"🔍 Total jobs fetched from Adzuna: {len(jobs)}")
+    st.success(f"🔍 Total jobs fetched from Adzuna: {len(jobs)}")
 
     deduped_jobs = deduplicate_jobs(jobs)
-    print(f"🧹 Total unique jobs after deduplication: {len(deduped_jobs)}")
+    st.warning(f"🧹 Total unique jobs after deduplication: {len(deduped_jobs)}")
 
     return pd.DataFrame(deduped_jobs)
