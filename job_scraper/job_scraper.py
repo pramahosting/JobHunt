@@ -74,14 +74,14 @@ def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
     jobs = get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max)
     #deduped_jobs = deduplicate_jobs(jobs)
    
-    if jobs:
-        df = pd.DataFrame(jobs)
-        st.success(f"✅ Found {len(df)} job(s)")
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.warning("❌ No jobs found. Try different keywords or locations.")
+        if jobs:
+            df = pd.DataFrame(jobs)
+            st.success(f"✅ Found {len(df)} job(s)")
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.warning("❌ No jobs found. Try different keywords or locations.")
 
-return df
+    return pd.DataFrame(jobs)
 
 
 
