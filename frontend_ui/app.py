@@ -147,12 +147,13 @@ if run_button:
     else:
         with st.spinner("🔍 Searching for matching jobs..."):
             jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
-            st.warning("Out of Job Search")
-            if isinstance(jobs, list):
-                jobs = pd.DataFrame(jobs)
             if jobs.empty:
                 st.warning("No jobs found. Please refine your criteria.")
                 st.stop()
+            
+            st.warning("Out of Job Search")
+            if isinstance(jobs, list):
+                jobs = pd.DataFrame(jobs)
 
             matched_jobs = match_resume_to_jobs(resume_text, jobs)
 
