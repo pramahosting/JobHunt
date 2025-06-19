@@ -18,86 +18,67 @@ import fitz  # PyMuPDF
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.markdown(
-    """
-    <style>
-    .main-title {
-        background-color: #007BFF;  /* Bootstrap Primary Blue */
-        color: white;
-        font-size: 28px;
-        font-weight: 700;
-        padding: 10px;
-        border-radius: 6px;
-        text-align: center;
-        margin-top: -40px;  /* ⬅️ Reduce top space */
-        margin-bottom: 12px;
-    }
-    </style>
-    <div class="main-title">JobHunt Agent – Smart Job Search</div>
-    """,
-    unsafe_allow_html=True
-)
 
-# === Upload Resume (with uploader bar and messages) ===
+# === HEADER WITH BLUE BAR ===
+st.markdown("""
+    <div style="background-color:#007BFF; padding:10px 0; text-align:center;">
+        <h2 style="color:white; margin:0;">JobHunt Agent – Smart Job Search</h2>
+    </div>
+    <hr style="border:none; height:2px; background-color:#000000; margin-top:5px; margin-bottom:15px;">
+""", unsafe_allow_html=True)
+
+# === Upload Resume Section ===
 st.subheader("Upload Resume")
-
-# Reduce space between heading and uploader
-st.markdown("<div style='margin-top: -25px;'></div>", unsafe_allow_html=True)
 
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
 
-# Always show uploader bar with collapsed label to avoid extra space
-uploaded_file = st.file_uploader(
-    "Upload", 
-    type=["pdf", "docx", "doc"], 
-    key="file_uploader", 
-    label_visibility="collapsed"
-)
+# Create a two-column layout for uploader + placeholder space
+u_col1, u_col2 = st.columns([1, 2])
 
-# === Reserve message space ===
-message_container = st.empty()
+with u_col1:
+    uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"], key="file_uploader")
+    if uploaded_file:
+        st.session_state.uploaded = uploaded_file
 
-# === Upload logic and message rendering ===
-if uploaded_file:
-    st.session_state.uploaded = uploaded_file
-    with message_container.container():
-        #st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
-        st.success("✅ Uploaded: " + uploaded_file.name)
-elif st.session_state.uploaded:
-    uploaded_file = st.session_state.uploaded
-    with message_container.container():
-        #st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
-        st.success("✅ Uploaded: " + uploaded_file.name)
-else:
-    # Pre-reserve blank space to prevent layout shift
-    with message_container.container():
-        st.markdown("<div style='height: 90px;'></div>", unsafe_allow_html=True)
+# Pre-allocated message display space
+with u_col2:
+    if st.session_state.uploaded:
+        uploaded_file = st.session_state.uploaded
+        st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
+        st.info("✔ Resume uploaded successfully.")
+        st.success("You can now enter your search criteria below.")
 
 # === Enter Search Criteria ===
-st.subheader("Enter Job Search Criteria")
-with st.container():
-    col1, col2 = st.columns(2)
-    with col1:
-        role = st.text_input("🎯 Target Role", placeholder="e.g., Data Architect")
+st.markdown("""
+<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+""", unsafe_allow_html=True)
 
-    with col2:
-        locations = ["All", "Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin"]
-        location = st.selectbox("📍 Location", options=locations)
+st.subheader("Enter Search Criteria")
 
-    col3, col4 = st.columns(2)
-    with col3:
-        industries = ["All", "Banking and Financial Services", "Healthcare", "Technology", "Retail", "Government", "Manufacturing", "Mining", "Consulting"]
-        industry = st.selectbox("🏭 Industry", options=industries)
+col1, col2 = st.columns(2)
+with col1:
+    role = st.text_input("🎯 Target Role", placeholder="e.g., Data Architect")
 
-    with col4:
-        job_type = st.selectbox("💼 Job Type", ["All", "Full-time", "Part-time", "Contract", "Temporary"])
+with col2:
+    locations = ["All", "Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin"]
+    location = st.selectbox("📍 Location", options=locations)
 
-    col5, col6 = st.columns(2)
-    with col5:
-        min_salary = st.number_input("💲 Min Salary", value=0, step=1000)
-    with col6:
-        max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
+col3, col4 = st.columns(2)
+with col3:
+    industries = ["All", "Banking and Financial Services", "Healthcare", "Technology", "Retail", "Government", "Manufacturing", "Mining", "Consulting"]
+    industry = st.selectbox("🏭 Industry", options=industries)
+
+with col4:
+    job_type = st.selectbox("💼 Job Type", ["All", "Full-time", "Part-time", "Contract", "Temporary"])
+
+col5, col6 = st.columns(2)
+with col5:
+    min_salary = st.number_input("💲 Min Salary", value=0, step=1000)
+with col6:
+    max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
+
+st.markdown("""</div>""", unsafe_allow_html=True)
 
 # === Extract Resume Text ===
 def extract_resume_text(uploaded_file):
@@ -152,17 +133,15 @@ if run_button:
             jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
 
             if isinstance(jobs, list):
-                if len(jobs) == 0:
-                    st.warning("No jobs found. Please refine your criteria.")
-                    st.stop()
                 jobs = pd.DataFrame(jobs)
-
             if jobs.empty:
                 st.warning("No jobs found. Please refine your criteria.")
                 st.stop()
 
             matched_jobs = match_resume_to_jobs(resume_text, jobs)
 
+            if isinstance(matched_jobs, list):
+                matched_jobs = pd.DataFrame(matched_jobs)
             if matched_jobs.empty:
                 st.warning("No matching jobs found.")
                 st.stop()
@@ -180,4 +159,3 @@ if run_button:
                 matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
                 use_container_width=True
             )
-
