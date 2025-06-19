@@ -16,6 +16,7 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
         "app_key": ADZUNA_APP_KEY,
         "results_per_page": 20,
         "what": role,
+ 	"content-type": "application/json",
     }
 
     if location and location.lower() != "all":
@@ -40,11 +41,13 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
             jobs.append({
                 "Job Title": job.get("title", "Unknown"),
                 "Company": job.get("company", {}).get("display_name", "Unknown"),
+                "Published": job.get("created", "")[:10],
                 "Location": job.get("location", {}).get("display_name", location),
-                "description": job.get("description", ""),
-                "Score": 0,
-                "Apply Link": job.get("redirect_url", ""),
+                "Job Type": job.get("contract_time", "N/A"),
+                "Source": "Adzuna",
+                "Description": job.get("description", ""),
                 "Source": "Adzuna"
+                "Link": job.get("redirect_url", "")
             })
 
         return jobs
@@ -69,8 +72,16 @@ def deduplicate_jobs(job_list):
 def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
     # ✅ FIXED: Removed unused 'industry' from downstream call
     jobs = get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max)
-    deduped_jobs = deduplicate_jobs(jobs)
-    return pd.DataFrame(deduped_jobs)
+    #deduped_jobs = deduplicate_jobs(jobs)
+   
+    if jobs:
+        df = pd.DataFrame(jobs)
+        st.success(f"✅ Found {len(df)} job(s)")
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("❌ No jobs found. Try different keywords or locations.")
+
+    return df
 
 
 
