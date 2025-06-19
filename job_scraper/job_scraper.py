@@ -46,7 +46,7 @@ def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
                 "Job Type": job.get("contract_time", "N/A"),
                 "Source": "Adzuna",
                 "Description": job.get("description", ""),
-                "Source": "Adzuna"
+                "Source": "Adzuna",
                 "Link": job.get("redirect_url", "")
             })
 
