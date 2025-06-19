@@ -41,17 +41,12 @@ uploaded_file = st.file_uploader("Upload", type=["pdf", "docx", "doc"], key="fil
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
     st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
-    st.info("✔ Resume uploaded successfully.")
-    st.success("You can now enter your search criteria below.")
 elif st.session_state.uploaded:
     uploaded_file = st.session_state.uploaded
     st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
-    st.info("✔ Resume uploaded successfully.")
-    st.success("You can now enter your search criteria below.")
 
 # === Enter Search Criteria ===
 st.subheader("Enter Job Search Criteria")
-
 with st.container():
     col1, col2 = st.columns(2)
     with col1:
