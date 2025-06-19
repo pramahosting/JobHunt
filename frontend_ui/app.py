@@ -29,7 +29,7 @@ st.markdown(
         padding: 10px;
         border-radius: 6px;
         text-align: center;
-        margin-top: -50px;  /* ⬅️ Reduce top space */
+        margin-top: -70px;  /* ⬅️ Reduce top space */
         margin-bottom: 12px;
     }
     </style>
