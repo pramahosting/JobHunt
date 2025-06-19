@@ -56,8 +56,8 @@ uploaded_file = st.file_uploader(
 )
 
 # === Reserve message space ===
-message_box = st.empty()
-message_box.markdown("""<div style="width:50%; ...">Your message here</div>""", unsafe_allow_html=True)
+message_container = st.empty()  # 👈 FIX: define it here
+message_container.markdown("""<div style="width:50%; ...">Your message here</div>""", unsafe_allow_html=True)
 
 # === Upload logic and message rendering ===
 if uploaded_file:
