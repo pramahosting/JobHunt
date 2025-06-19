@@ -55,16 +55,6 @@ uploaded_file = st.file_uploader(
     label_visibility="collapsed"
 )
 
-# 🔧 Hide default uploaded file display
-st.markdown("""
-    <style>
-    /* Hide default filename message shown by file_uploader */
-    [data-testid="stFileUploader"] > div:first-child {
-        display: none;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # === Reserve message space ===
 message_container = st.empty()
 # === Upload logic and message rendering ===
@@ -79,7 +69,7 @@ elif st.session_state.uploaded:
 else:
     # Pre-reserve blank space to prevent layout shift
     with message_container.container():
-        st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Search Criteria")
