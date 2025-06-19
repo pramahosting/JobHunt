@@ -174,7 +174,8 @@ if run_button:
             st.download_button("📅 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
 
             st.dataframe(
-                matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
+                matched_jobs["Job Title", "Company", "Location", "Score", "Matching Areas", "Resume Strengths", "Improvement Tips", "Link",
+ "Cover Letter"],
                 use_container_width=True
             )
 
