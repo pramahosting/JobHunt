@@ -38,21 +38,26 @@ uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"], key="file_uplo
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
     st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
-    st.info("✔ Resume uploaded successfully.")
-    st.success("You can now enter your search criteria below.")
+    #st.info("✔ Resume uploaded successfully.")
+    #st.success("You can now enter your search criteria below.")
 else:
     # If no file uploaded yet but previous session state exists
     if st.session_state.uploaded:
         uploaded_file = st.session_state.uploaded
         st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
-        st.info("✔ Resume uploaded successfully.")
-        st.success("You can now enter your search criteria below.")
+        #st.info("✔ Resume uploaded successfully.")
+        #st.success("You can now enter your search criteria below.")
 
 # Add vertical spacing after Upload Resume section for messages
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Search Criteria")
+
+# 🔲 Start bordered box
+st.markdown("""
+<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+""", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -75,6 +80,9 @@ with col5:
     min_salary = st.number_input("💲 Min Salary", value=0, step=1000)
 with col6:
     max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
+
+# 🔲 End bordered box
+st.markdown("</div>", unsafe_allow_html=True)
 
 # === Extract Resume Text ===
 def extract_resume_text(uploaded_file):
