@@ -38,40 +38,22 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# === Upload Resume (Tight layout, no lingering popup) ===
-st.markdown("""
-    <div style="background-color: #f0f2f6; padding: 10px 20px 10px 20px; border-radius: 6px;">
-        <h4 style="margin: 0;">Upload Resume</h4>
-    </div>
-""", unsafe_allow_html=True)
-
-# Inject CSS to hide file uploader preview popup
-st.markdown("""
-    <style>
-        section[data-testid="stFileUploader"] div[data-testid="stFileUploaderDropzone"] > div {
-            display: none;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# === Upload Resume Section ===
+st.subheader("Upload Resume")
 
 # Minimal spacing between header and uploader
-st.markdown("<div style='margin-top: -35px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: -45px;'></div>", unsafe_allow_html=True)
 
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
 
-# Tight spacing around uploader
-upload_col = st.columns([1, 4, 1])[1]  # center in middle 4 units
-with upload_col:
-    uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"], key="file_uploader")
-
 # Always show uploader bar with collapsed label to avoid extra space
-#uploaded_file = st.file_uploader(
-#    "Upload", 
-#    type=["pdf", "docx", "doc"], 
-#    key="file_uploader", 
-#    label_visibility="collapsed"
-#)
+uploaded_file = st.file_uploader(
+    "Upload", 
+    type=["pdf", "docx", "doc"], 
+    key="file_uploader", 
+    label_visibility="collapsed"
+)
 
 # === Reserve message space ===
 message_container = st.empty()
