@@ -44,11 +44,13 @@ st.subheader("Upload Resume")
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
 
+# Always show file uploader bar
+uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"], key="file_uploader")
+
 # Create a two-column layout for uploader + placeholder space
 u_col1, u_col2 = st.columns([1, 2])
 
 with u_col1:
-    uploaded_file = st.file_uploader("", type=["pdf", "docx", "doc"], key="file_uploader")
     if uploaded_file:
         st.session_state.uploaded = uploaded_file
 
