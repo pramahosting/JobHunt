@@ -55,6 +55,16 @@ uploaded_file = st.file_uploader(
     label_visibility="collapsed"
 )
 
+# 🔧 Hide default uploaded file display
+st.markdown("""
+    <style>
+    /* Hide default filename message shown by file_uploader */
+    [data-testid="stFileUploader"] > div:first-child {
+        display: none;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # === Reserve message space ===
 message_container = st.empty()
 # === Upload logic and message rendering ===
