@@ -159,3 +159,4 @@ if run_button:
                 matched_jobs[["Job Title", "Company", "Location", "Score", "Apply Link", "Cover Letter"]],
                 use_container_width=True
             )
+
