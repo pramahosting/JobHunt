@@ -57,22 +57,19 @@ uploaded_file = st.file_uploader(
 
 # === Reserve message space ===
 message_container = st.empty()
-
 # === Upload logic and message rendering ===
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
     with message_container.container():
-        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
         st.success("✅ Uploaded: " + uploaded_file.name)
 elif st.session_state.uploaded:
     uploaded_file = st.session_state.uploaded
     with message_container.container():
-        st.markdown(f"<b>{uploaded_file.name}</b><br><small>{round(uploaded_file.size / 1024, 1)}KB</small>", unsafe_allow_html=True)
-        st.success("✅ Uploaded: " + uploaded_file.name)
+        st.success("✅ Uploaded: " + uploaded_file.name) 
 else:
     # Pre-reserve blank space to prevent layout shift
     with message_container.container():
-        st.markdown("<div style='height: 90px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Search Criteria")
