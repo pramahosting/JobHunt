@@ -81,7 +81,7 @@ def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
     else:
         st.warning("❌ No jobs found. Try different keywords or locations.")
 
-    return df
+return df
 
 
 
