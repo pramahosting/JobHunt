@@ -46,7 +46,7 @@ else:
         st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
 
 # === Enter Search Criteria ===
-st.subheader("Enter Search Criteria")
+st.subheader("Enter Job Search Criteria")
 
 with st.container():
     col1, col2 = st.columns(2)
