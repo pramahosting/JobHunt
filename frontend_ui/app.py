@@ -18,14 +18,25 @@ import fitz  # PyMuPDF
 import pandas as pd
 
 st.set_page_config(layout="wide")
-
-# === HEADER WITH BLUE BAR ===
-st.markdown("""
-    <div style="background-color:#007BFF; padding:10px 0; text-align:center;">
-        <h2 style="color:white; margin:0;">JobHunt Agent – Smart Job Search</h2>
-    </div>
-    <hr style="border:none; height:2px; background-color:#000000; margin-top:5px; margin-bottom:15px;">
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    .main-title {
+        background-color: #007BFF;  /* Bootstrap Primary Blue */
+        color: white;
+        font-size: 28px;
+        font-weight: 700;
+        padding: 10px;
+        border-radius: 6px;
+        text-align: center;
+        margin-top: -50px;  /* ⬅️ Reduce top space */
+        margin-bottom: 12px;
+    }
+    </style>
+    <div class="main-title">JobHunt Agent – Smart Job Search</div>
+    """,
+    unsafe_allow_html=True
+)
 
 # === Upload Resume Section ===
 st.subheader("Upload Resume")
@@ -46,14 +57,8 @@ with u_col2:
     if st.session_state.uploaded:
         uploaded_file = st.session_state.uploaded
         st.markdown(f"✅ Uploaded: **{uploaded_file.name}**")
-        st.info("✔ Resume uploaded successfully.")
-        st.success("You can now enter your search criteria below.")
 
 # === Enter Search Criteria ===
-st.markdown("""
-<div style="border: 2px solid #D3D3D3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-""", unsafe_allow_html=True)
-
 st.subheader("Enter Search Criteria")
 
 col1, col2 = st.columns(2)
@@ -77,8 +82,6 @@ with col5:
     min_salary = st.number_input("💲 Min Salary", value=0, step=1000)
 with col6:
     max_salary = st.number_input("💲 Max Salary", value=200000, step=1000)
-
-st.markdown("""</div>""", unsafe_allow_html=True)
 
 # === Extract Resume Text ===
 def extract_resume_text(uploaded_file):
