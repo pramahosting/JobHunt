@@ -2,21 +2,20 @@
 # job_scraper/job_scraper.py
 # ================================
 import requests
-import pandas as pd  # ✅ ADDED: To convert job list to DataFrame
+import pandas as pd
 
-# Adzuna API credentials
+# --- Adzuna API credentials ---
 ADZUNA_APP_ID = "638c0962"
 ADZUNA_APP_KEY = "04681adc21daeda69c41b271627d448a"
 
 # --- Get Jobs from Adzuna API ---
-def get_jobs_from_adzuna(role, location, industry, job_type, salary_min, salary_max):
+def get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max):
     base_url = "https://api.adzuna.com/v1/api/jobs/au/search/1"
     params = {
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
-        "results_per_page": 50,
+        "results_per_page": 20,
         "what": role,
-        "content-type": "application/json",
     }
 
     if location and location.lower() != "all":
@@ -47,10 +46,12 @@ def get_jobs_from_adzuna(role, location, industry, job_type, salary_min, salary_
                 "Apply Link": job.get("redirect_url", ""),
                 "Source": "Adzuna"
             })
+
         return jobs
 
     except Exception as e:
-        print("Adzuna API error:", e)
+        print("❌ Adzuna API error:", e)
+        print("Response content:", response.text if 'response' in locals() else "No response")
         return []
 
 # --- Remove Duplicate Jobs ---
@@ -66,12 +67,11 @@ def deduplicate_jobs(job_list):
 
 # --- Get All Jobs ---
 def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
-    jobs = []
-    jobs += get_jobs_from_adzuna(role, location, industry, job_type, salary_min, salary_max)
+    # ✅ FIXED: Removed unused 'industry' from downstream call
+    jobs = get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max)
     deduped_jobs = deduplicate_jobs(jobs)
-
-    # ✅✅✅ MODIFICATION: Convert to DataFrame before returning
     return pd.DataFrame(deduped_jobs)
+
 
 
 
