@@ -150,18 +150,19 @@ if run_button:
             if jobs.empty:
                 st.warning("No jobs found. Please refine your criteria.")
                 st.stop()
-            
-            st.warning("Out of Job Search")
+
             if isinstance(jobs, list):
                 jobs = pd.DataFrame(jobs)
 
             matched_jobs = match_resume_to_jobs(resume_text, jobs)
 
-            if isinstance(matched_jobs, list):
-                matched_jobs = pd.DataFrame(matched_jobs)
             if matched_jobs.empty:
                 st.warning("No matching jobs found.")
                 st.stop()
+
+            if isinstance(matched_jobs, list):
+                matched_jobs = pd.DataFrame(matched_jobs)
+
 
             matched_jobs["Cover Letter"] = matched_jobs.apply(
                 lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
