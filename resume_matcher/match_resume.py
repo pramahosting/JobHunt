@@ -168,3 +168,4 @@ def match_resume_to_jobs(resume_text, job_list):
     return pd.DataFrame(sorted(matched_jobs, key=lambda x: x["Score (ATS)"], reverse=True))
 
 
+
