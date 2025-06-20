@@ -43,7 +43,7 @@ def generate_cover_letter(resume_text, job):
 
     letter = f"""Dear Hiring Manager,
 
-I am writing to express my strong interest in the **{job_title}** role. With proven experience aligned to your key requirements, I am confident in my ability to contribute effectively from day one.
+I am writing to express my strong interest in the {job_title} role. With proven experience aligned to your key requirements, I am confident in my ability to contribute effectively from day one.
 
 Top reasons I am a strong fit for this role:
 {reasons}
