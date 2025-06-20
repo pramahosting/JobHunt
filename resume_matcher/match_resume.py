@@ -1,60 +1,75 @@
 # ================================
-# resume_matcher/match_resume.py
+# resume_matcher/match_resume.py (Updated)
 # ================================
-from difflib import SequenceMatcher
 import re
 import pandas as pd
-from collections import Counter
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-def clean_text(text):
-    if not text:
-        return ""
-    return re.sub(r'\s+', ' ', text.lower().strip())
+# Define keyword categories
+BUSINESS_KEYWORDS = ["strategy", "risk", "stakeholder", "budget", "revenue", "regulatory", "policy", "compliance"]
+FUNCTIONAL_KEYWORDS = ["reporting", "analytics", "planning", "modeling", "forecasting", "dashboard", "visualization"]
+TECHNICAL_KEYWORDS = ["python", "sql", "azure", "aws", "gcp", "tableau", "powerbi", "etl", "datawarehouse", "airflow"]
 
-def extract_keywords(text):
-    words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
-    return Counter(words)
+def clean_and_tokenize(text):
+    text = re.sub(r"[^a-zA-Z0-9 ]", " ", text)
+    tokens = list(set([w.strip().lower() for w in text.split() if len(w.strip()) > 2]))
+    return tokens
 
-def compute_ats_score(resume_text, job_description):
-    resume_keywords = extract_keywords(resume_text)
-    job_keywords = extract_keywords(job_description)
+def classify_keywords(tokens):
+    business = [t for t in tokens if t in BUSINESS_KEYWORDS]
+    functional = [t for t in tokens if t in FUNCTIONAL_KEYWORDS]
+    technical = [t for t in tokens if t in TECHNICAL_KEYWORDS]
+    return business, functional, technical
 
-    matched_keywords = set(resume_keywords.keys()) & set(job_keywords.keys())
-    total_keywords = len(job_keywords)
+def extract_features(text):
+    tokens = clean_and_tokenize(text)
+    return classify_keywords(tokens)
 
-    if total_keywords == 0:
-        return 0, [], "N/A", "N/A"
-
-    score = int((len(matched_keywords) / total_keywords) * 100)
-    top_matches = sorted(matched_keywords, key=lambda x: job_keywords[x], reverse=True)[:5]
-    missing_keywords = set(job_keywords.keys()) - set(resume_keywords.keys())
-    improvement_tips = sorted(missing_keywords, key=lambda x: job_keywords[x], reverse=True)[:5]
-
-    return score, top_matches, ", ".join(top_matches), ", ".join(improvement_tips)
+def compute_ats_score(resume_text, job_desc):
+    vectorizer = CountVectorizer().fit_transform([resume_text, job_desc])
+    score = cosine_similarity(vectorizer[0:1], vectorizer[1:2])[0][0] * 100
+    return round(score, 1)
 
 def match_resume_to_jobs(resume_text, job_list):
     matched_jobs = []
-    resume_clean = clean_text(resume_text)
 
     for job in job_list:
-        if not isinstance(job, dict):
-            continue
+        job_desc = job.get("description", "")
+        score = compute_ats_score(resume_text, job_desc)
 
-        job_desc = clean_text(job.get("description", ""))
-        score, matched_keywords, match_summary, improvement_tips = compute_ats_score(resume_clean, job_desc)
+        # Extract features
+        resume_b, resume_f, resume_t = extract_features(resume_text)
+        job_b, job_f, job_t = extract_features(job_desc)
+
+        # Matched and missing
+        matched_b = set(resume_b) & set(job_b)
+        matched_f = set(resume_f) & set(job_f)
+        matched_t = set(resume_t) & set(job_t)
+
+        missing_b = set(job_b) - set(resume_b)
+        missing_f = set(job_f) - set(resume_f)
+        missing_t = set(job_t) - set(resume_t)
+
+        # Generate brief insights
+        strengths = []
+        if matched_b: strengths.append(f"Business: {', '.join(matched_b)}")
+        if matched_f: strengths.append(f"Functional: {', '.join(matched_f)}")
+        if matched_t: strengths.append(f"Technical: {', '.join(matched_t)}")
+
+        improvements = []
+        if missing_b: improvements.append(f"Lack of business exposure in {', '.join(missing_b)}")
+        if missing_f: improvements.append(f"Improve functional skills like {', '.join(missing_f)}")
+        if missing_t: improvements.append(f"Missing technical tools: {', '.join(missing_t)}")
 
         matched_jobs.append({
             "Job Title": job.get("Job Title") or job.get("title"),
             "Company": job.get("Company") or job.get("company"),
             "Location": job.get("Location") or job.get("location"),
-            "description": job.get("description"),
-            "Apply Link": job.get("Apply Link") or job.get("link"),
-            "Score": score,
-            "Matching Areas": match_summary,
-            "Resume Strengths": f"{len(matched_keywords)} keyword(s) matched",
-            "Improvement Tips": f"Consider including: {improvement_tips}"
+            "Score (ATS)": score,
+            "Strengths": "; ".join(strengths),
+            "Improvement Areas": "; ".join(improvements),
+            "Apply Link": job.get("Apply Link") or job.get("link")
         })
 
-    return pd.DataFrame(sorted(matched_jobs, key=lambda x: x["Score"], reverse=True))
-
-
+    return pd.DataFrame(sorted(matched_jobs, key=lambda x: x["Score (ATS)"], reverse=True))
