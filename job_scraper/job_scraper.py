@@ -1,10 +1,8 @@
 # ================================
 # job_scraper/job_scraper.py
 # ================================
-import requests
-import pandas as pd
-import streamlit as st
 import re
+import requests
 from datetime import datetime, timedelta
 
 # --- Adzuna API credentials ---
@@ -148,3 +146,4 @@ def get_all_jobs(role, location, industry, job_type, salary_min, salary_max):
     jobs = get_jobs_from_adzuna(role, location, job_type, salary_min, salary_max)
     deduped_jobs = deduplicate_jobs(jobs)
     return pd.DataFrame(deduped_jobs)
+
