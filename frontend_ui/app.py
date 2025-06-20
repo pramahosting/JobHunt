@@ -10,6 +10,12 @@ from job_scraper.job_scraper import get_all_jobs
 from resume_matcher.match_resume import match_resume_to_jobs
 from cover_letter_generator.cover_letter import generate_cover_letter
 from excel_exporter.export_excel import export_to_excel
+from optimization_utils.performance_boost import (
+    get_cached_jobs,
+    compute_ats_scores_batch,
+    export_to_excel_in_memory
+)
+from streamlit.runtime.scriptrunner import RerunException
 
 import mimetypes
 import docx2txt
@@ -19,6 +25,7 @@ import pandas as pd
 
 # Page config
 st.set_page_config(layout="wide")
+
 st.markdown(
     """
     <style>
@@ -33,55 +40,94 @@ st.markdown(
         margin-top: -35px;
         margin-bottom: 10px;
     }
-    </style>
-    <div class="main-title">JobHunt Agent – Smart Job Search</div>
-    """,
-    unsafe_allow_html=True
-)
+    .button-container {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1em;
+    }
+    .download-container {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1em;
+    }
+    .excel-button {
+        background-color: white;
+        color: black;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        border: 1px solid #ccc;
+    }
+    div.stButton > button:first-child {
+        background-color: #007BFF;
+        color: white;
+        height: 3em;
+        width: 12em;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #0056b3;
+        color: white;
+    }
+    th {
+        text-align: left !important;
+    }
+    .cover-letter-cell {
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 8px;
+        background-color: #fcfcfc;
+        border: 1px solid #eee;
+    }
 
-# === Upload Resume Section ===
-st.subheader("Upload Resume")
-st.markdown("<div style='margin-top: -65px;'></div>", unsafe_allow_html=True)
+</style>
+ <div class="main-title">JobHunt Agent – Smart Job Search</div>
+""", unsafe_allow_html=True)
 
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
+if "matched_jobs" not in st.session_state:
+    st.session_state.matched_jobs = None
+
+# === Upload Resume Section ===
+st.subheader("Upload Resume")
+st.markdown("<div style='margin-top: -75px;'></div>", unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader(
     "Upload",
-    type=["pdf", "docx", "doc"],
+    type=["pdf", "docx"],
     key="file_uploader",
     label_visibility="collapsed"
 )
 
-message_container = st.empty()
-message_container.markdown("""<div style="width:50%; ...">Your message here</div>""", unsafe_allow_html=True)
+# Reserve stable container for upload messages with fixed height
+upload_message_container = st.empty()
+upload_message_height = 100  # in px, adjust as needed
 
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
-    with message_container.container():
-        st.success("✅ Uploaded: " + uploaded_file.name)
-elif st.session_state.uploaded:
-    uploaded_file = st.session_state.uploaded
-    with message_container.container():
+    with upload_message_container.container():
         st.success("✅ Uploaded: " + uploaded_file.name)
 else:
-    with message_container.container():
-        st.markdown("<div style='height: 90px;'></div>", unsafe_allow_html=True)
+    # Reserve fixed vertical space to avoid layout jump when no message
+    upload_message_container.markdown(f"<div style='height: {upload_message_height}px;'></div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Search Criteria")
 
 col1, col2 = st.columns(2)
 with col1:
-    role = st.text_input("🎯 Target Role", placeholder="e.g., Data Architect")
+    role = st.text_input("🎯 Target Role", placeholder="e.g., Data Architect", key="role")
 with col2:
     locations = ["All", "Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin"]
-    location = st.selectbox("📍 Location", options=locations)
+    location = st.selectbox("📍 Location", locations, key="location")
 
 col3, col4 = st.columns(2)
 with col3:
     industries = ["All", "Banking and Financial Services", "Healthcare", "Technology", "Retail", "Government", "Manufacturing", "Mining", "Consulting"]
-    industry = st.selectbox("🏭 Industry", options=industries)
+    industry = st.selectbox("🏠 Industry", industries, key="industry")
 with col4:
     job_type = st.selectbox("💼 Job Type", ["All", "Full-time", "Part-time", "Contract", "Temporary"])
 
@@ -113,26 +159,26 @@ def extract_resume_text(uploaded_file):
 
 resume_text = extract_resume_text(uploaded_file)
 
-# === Run Agent Button Styling ===
-st.markdown("""
-<style>
-div.stButton > button:first-child {
-    background-color: #007BFF;
-    color: white;
-    height: 3em;
-    width: 12em;
-    border-radius: 6px;
-    font-weight: 600;
-}
-div.stButton > button:first-child:hover {
-    background-color: #0056b3;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
+# === Run & Reset Buttons ===
+col_run, col_reset = st.columns([1, 1])
+with col_run:
+    run_button = st.button("🚀 Run Agent")
+with col_reset:
+    reset_button = st.button("🔄 Reset")
 
-# === Run Agent ===
-run_button = st.button("🚀 Run Agent")
+def reset_all():
+    for key in ["uploaded", "matched_jobs", "role", "location", "industry", "job_type", "min_salary", "max_salary"]:
+        if key in st.session_state:
+            del st.session_state[key]
+
+def rerun():
+    sys.exit("Rerun")
+
+if reset_button:
+    # Clear session state
+    for key in st.session_state.keys():
+        del st.session_state[key]
+    rerun()
 
 if run_button:
     if not uploaded_file:
@@ -158,28 +204,56 @@ if run_button:
                 matched_jobs = pd.DataFrame(matched_jobs)
 
             matched_jobs["Cover Letter"] = matched_jobs.apply(
-                lambda row: generate_cover_letter(resume_text, row.to_dict()),
+                lambda row: "<div class='cover-letter-cell'><div style='white-space: pre-wrap; font-family: Arial; font-size: 13px;'>" +
+                            generate_cover_letter(resume_text, row.to_dict()).replace("\n", "<br>") +
+                            "</div></div>",
                 axis=1
             )
 
-            excel_file = export_to_excel(matched_jobs)
+            st.session_state.matched_jobs = matched_jobs
+            st.session_state.excel_file = export_to_excel(matched_jobs)
 
-            st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
+# === Display Matched Jobs ===
+if st.session_state.matched_jobs is not None:
+    matched_jobs = st.session_state.matched_jobs
 
-            # 🟢 Fix: use BytesIO directly
+    col_msg, col_dl = st.columns([5, 1])
+    with col_msg:
+        st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
+    with col_dl:
+        if st.session_state.get("excel_file") is not None:
             st.download_button(
-                label="📅 Download Excel Results",
-                data=excel_file,
+                label="📅 Download Excel",
+                data=st.session_state.excel_file,
                 file_name="JobMatches.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download-excel",
+                help="Download matched jobs in Excel format"
             )
 
-            # Safe column selection
-            columns_to_show = [col for col in [
-                "Job Title", "Company", "Location", "Score (ATS)",
-                "Strengths", "Improvement Areas", "Apply Link", "Cover Letter"
-            ] if col in matched_jobs.columns]
+    if "Link" in matched_jobs.columns and matched_jobs["Link"].notna().any():
+        matched_jobs["Link"] = matched_jobs["Link"]
+    elif "Apply Link" in matched_jobs.columns:
+        matched_jobs["Link"] = matched_jobs["Apply Link"]
+    else:
+        matched_jobs["Link"] = "-"
 
-            st.dataframe(matched_jobs[columns_to_show], use_container_width=True)
+    matched_jobs["Apply"] = matched_jobs["Link"].apply(
+        lambda link: f'<a href="{link}" target="_blank">Apply</a>' if pd.notna(link) and str(link).startswith("http") else "-"
+    )
+
+    st.markdown("### 📝 Matched Jobs")
+
+    columns_to_show = [col for col in [
+        "Job Title", "Company", "Location", "Date Published", "Published By", "Key Requirements", "Score (ATS)", "Resume Strengths", "Improvement Areas", "Apply", "Cover Letter"
+    ] if col in matched_jobs.columns]
+
+    def clean_for_html(df):
+        return df.applymap(lambda x: str(x).encode('ascii', 'ignore').decode('ascii') if pd.notna(x) else "")
+
+    cleaned_matched_jobs = clean_for_html(matched_jobs[columns_to_show])
+    st.write(cleaned_matched_jobs.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+
 
 
