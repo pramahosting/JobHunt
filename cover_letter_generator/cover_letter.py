@@ -7,45 +7,55 @@ import re
 def extract_keywords(text):
     words = re.findall(r'\b\w+\b', text.lower())
     stop_words = {"the", "and", "for", "with", "in", "of", "to", "a", "on", "as", "is", "an", "be", "this", "that"}
-    keywords = [word for word in words if word not in stop_words and len(word) > 3]
-    return list(set(keywords))[:20]
+    return [word for word in words if word not in stop_words and len(word) > 3]
 
-def extract_strengths(resume_text, job_description):
-    resume_lines = resume_text.split('\n')
-    job_keywords = extract_keywords(job_description)
-    strengths = []
-
-    for line in resume_lines:
-        line_clean = line.strip().lower()
-        if any(keyword in line_clean for keyword in job_keywords):
-            strengths.append(line.strip())
-
-    return strengths[:3] if strengths else []
-
-def extract_name(resume_text):
-    # Assume name is in the first non-empty line and contains 2-4 words with each capitalized
+def extract_candidate_name(resume_text):
     lines = [line.strip() for line in resume_text.split('\n') if line.strip()]
-    for line in lines:
-        if 2 <= len(line.split()) <= 4 and all(word[0].isupper() for word in line.split() if word):
+    for line in lines[:10]:
+        if 2 <= len(line.split()) <= 4 and all(w[0].isupper() for w in line.split() if w[0].isalpha()):
             return line
     return "Your Name"
+
+def extract_strength_sentences(resume_text, job_description, max_points=4):
+    resume_lines = [line.strip() for line in resume_text.split('\n') if line.strip()]
+    job_keywords = extract_keywords(job_description)
+    scored_lines = []
+
+    for line in resume_lines:
+        score = sum(1 for kw in job_keywords if kw in line.lower())
+        if score > 0:
+            scored_lines.append((score, line))
+
+    top_sentences = [line.lstrip("• ").rstrip('.') + '.' for _, line in sorted(scored_lines, key=lambda x: x[0], reverse=True)[:max_points]]
+    return top_sentences
 
 def generate_cover_letter(resume_text, job):
     job_title = job.get('Job Title') or job.get('title', 'the position')
     company = job.get('Company') or job.get('company', 'your organization')
-    location = job.get('Location') or job.get('location', 'your location')
-    job_desc = job.get("description", "")
-    candidate_name = extract_name(resume_text)
+    job_desc = job.get("Description") or job.get("description", "")
+    candidate_name = extract_candidate_name(resume_text)
+    strengths = extract_strength_sentences(resume_text, job_desc)
 
-    strengths = extract_strengths(resume_text, job_desc)
-    strengths_formatted = "\n".join([f"- {s}" for s in strengths]) if strengths else "- [Your key strengths here]"
+    # Determine if the company is a recruitment agency by keywords
+    is_agency = any(word in company.lower() for word in ['recruit', 'agency', 'talent', 'staffing'])
 
-    return f"""Dear {company},\n
-I am writing to express my strong interest in the **{job_title}** role based in {location}. With proven experience aligned to your key requirements, I am confident in my ability to contribute effectively to your team from day one.\n
-**Top reasons I am a strong fit for this role:**\n
-{strengths_formatted}\n
-I am particularly drawn to {company} because of its innovation, leadership, and values that align with my own. I bring a track record of delivering impactful results and driving business value through data-driven solutions and cross-functional collaboration.\n
-I would welcome the opportunity to contribute my expertise and energy to your organization. Thank you for considering my application.\n
-Warm regards,\n
+    reasons = "\n".join([f"- {s}" for s in strengths]) if strengths else "- [Your relevant strengths here]"
+
+    letter = f"""Dear Hiring Manager,
+
+I am writing to express my strong interest in the **{job_title}** role. With proven experience aligned to your key requirements, I am confident in my ability to contribute effectively from day one.
+
+Top reasons I am a strong fit for this role:
+{reasons}
+"""
+
+    if not is_agency:
+        letter += f"""\nI am particularly drawn to {company} because of its innovation, leadership, and values that align with my own.
+"""
+
+    letter += f"""\nI would welcome the opportunity to contribute my expertise and energy to your organization. Thank you for considering my application.
+
+Warm regards,  
 {candidate_name}
 """
+    return letter
