@@ -17,20 +17,21 @@ import pdfplumber
 import fitz  # PyMuPDF
 import pandas as pd
 
+# Page config
 st.set_page_config(layout="wide")
 st.markdown(
     """
     <style>
     .main-title {
-        background-color: #007BFF;  /* Bootstrap Primary Blue */
+        background-color: #007BFF;
         color: white;
         font-size: 28px;
-        font-weight: 700;
+        font-weight: 500;
         padding: 10px;
         border-radius: 6px;
         text-align: center;
-        margin-top: -70px;  /* ⬅️ Reduce top space */
-        margin-bottom: 12px;
+        margin-top: -35px;
+        margin-bottom: 10px;
     }
     </style>
     <div class="main-title">JobHunt Agent – Smart Job Search</div>
@@ -40,26 +41,21 @@ st.markdown(
 
 # === Upload Resume Section ===
 st.subheader("Upload Resume")
-
-# Minimal spacing between header and uploader
 st.markdown("<div style='margin-top: -65px;'></div>", unsafe_allow_html=True)
 
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = None
 
-# Always show uploader bar with collapsed label to avoid extra space
 uploaded_file = st.file_uploader(
-    "Upload", 
-    type=["pdf", "docx", "doc"], 
-    key="file_uploader", 
+    "Upload",
+    type=["pdf", "docx", "doc"],
+    key="file_uploader",
     label_visibility="collapsed"
 )
 
-# === Reserve message space ===
-message_container = st.empty()  # 👈 FIX: define it here
+message_container = st.empty()
 message_container.markdown("""<div style="width:50%; ...">Your message here</div>""", unsafe_allow_html=True)
 
-# === Upload logic and message rendering ===
 if uploaded_file:
     st.session_state.uploaded = uploaded_file
     with message_container.container():
@@ -67,11 +63,10 @@ if uploaded_file:
 elif st.session_state.uploaded:
     uploaded_file = st.session_state.uploaded
     with message_container.container():
-        st.success("✅ Uploaded: " + uploaded_file.name) 
+        st.success("✅ Uploaded: " + uploaded_file.name)
 else:
-    # Pre-reserve blank space to prevent layout shift
     with message_container.container():
-        st.markdown("<div style='height: 80px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 90px;'></div>", unsafe_allow_html=True)
 
 # === Enter Search Criteria ===
 st.subheader("Enter Search Criteria")
@@ -79,7 +74,6 @@ st.subheader("Enter Search Criteria")
 col1, col2 = st.columns(2)
 with col1:
     role = st.text_input("🎯 Target Role", placeholder="e.g., Data Architect")
-
 with col2:
     locations = ["All", "Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin"]
     location = st.selectbox("📍 Location", options=locations)
@@ -88,7 +82,6 @@ col3, col4 = st.columns(2)
 with col3:
     industries = ["All", "Banking and Financial Services", "Healthcare", "Technology", "Retail", "Government", "Manufacturing", "Mining", "Consulting"]
     industry = st.selectbox("🏭 Industry", options=industries)
-
 with col4:
     job_type = st.selectbox("💼 Job Type", ["All", "Full-time", "Part-time", "Contract", "Temporary"])
 
@@ -120,7 +113,7 @@ def extract_resume_text(uploaded_file):
 
 resume_text = extract_resume_text(uploaded_file)
 
-# === Custom CSS for Blue Run Agent Button ===
+# === Run Agent Button Styling ===
 st.markdown("""
 <style>
 div.stButton > button:first-child {
@@ -149,12 +142,11 @@ if run_button:
     else:
         with st.spinner("🔍 Searching for matching jobs..."):
             jobs = get_all_jobs(role, location, industry, job_type, min_salary, max_salary)
+            if isinstance(jobs, list):
+                jobs = pd.DataFrame(jobs)
             if jobs.empty:
                 st.warning("No jobs found. Please refine your criteria.")
                 st.stop()
-
-            if isinstance(jobs, list):
-                jobs = pd.DataFrame(jobs)
 
             matched_jobs = match_resume_to_jobs(resume_text, jobs)
 
@@ -165,19 +157,29 @@ if run_button:
             if isinstance(matched_jobs, list):
                 matched_jobs = pd.DataFrame(matched_jobs)
 
-
             matched_jobs["Cover Letter"] = matched_jobs.apply(
-                lambda row: generate_cover_letter(resume_text, row.get("description", "")), axis=1
+                lambda row: generate_cover_letter(resume_text, row.to_dict()),
+                axis=1
             )
 
             excel_file = export_to_excel(matched_jobs)
 
             st.success(f"✅ Found {len(matched_jobs)} matching jobs!")
-            st.download_button("📅 Download Excel Results", data=excel_file.getvalue(), file_name="JobMatches.xlsx")
 
-            st.dataframe(
-                matched_jobs["Job Title", "Company", "Location", "Score", "Matching Areas", "Resume Strengths", "Improvement Tips", "Link",
- "Cover Letter"],
-                use_container_width=True
+            # 🟢 Fix: use BytesIO directly
+            st.download_button(
+                label="📅 Download Excel Results",
+                data=excel_file,
+                file_name="JobMatches.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
+            # Safe column selection
+            columns_to_show = [col for col in [
+                "Job Title", "Company", "Location", "Score (ATS)",
+                "Strengths", "Improvement Areas", "Apply Link", "Cover Letter"
+            ] if col in matched_jobs.columns]
+
+            st.dataframe(matched_jobs[columns_to_show], use_container_width=True)
+
 
