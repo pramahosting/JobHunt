@@ -1,9 +1,9 @@
 # ================================
 # cover_letter_generator/cover_letter.py
 # ================================
-
 import re
 
+# --- Utility functions ---
 def extract_keywords(text):
     words = re.findall(r'\b\w+\b', text.lower())
     stop_words = {"the", "and", "for", "with", "in", "of", "to", "a", "on", "as", "is", "an", "be", "this", "that"}
@@ -16,19 +16,20 @@ def extract_candidate_name(resume_text):
             return line
     return "Your Name"
 
-def extract_strength_sentences(resume_text, job_description, max_points=4):
-    resume_lines = [line.strip() for line in resume_text.split('\n') if line.strip()]
+def extract_strength_sentences(resume_text, job_description, max_points=5):
+    resume_lines = [line.strip().lstrip("• ") for line in resume_text.split('\n') if line.strip()]
     job_keywords = extract_keywords(job_description)
     scored_lines = []
 
     for line in resume_lines:
         score = sum(1 for kw in job_keywords if kw in line.lower())
         if score > 0:
-            scored_lines.append((score, line))
+            scored_lines.append((score, line.rstrip('.')))
 
-    top_sentences = [line.lstrip("• ").rstrip('.') + '.' for _, line in sorted(scored_lines, key=lambda x: x[0], reverse=True)[:max_points]]
+    top_sentences = [line + '.' for _, line in sorted(scored_lines, key=lambda x: x[0], reverse=True)[:max_points]]
     return top_sentences
 
+# --- Main Cover Letter Generator ---
 def generate_cover_letter(resume_text, job):
     job_title = job.get('Job Title') or job.get('title', 'the position')
     company = job.get('Company') or job.get('company', 'your organization')
@@ -36,14 +37,21 @@ def generate_cover_letter(resume_text, job):
     candidate_name = extract_candidate_name(resume_text)
     strengths = extract_strength_sentences(resume_text, job_desc)
 
-    # Determine if the company is a recruitment agency by keywords
+    # Detect if it's a recruitment agency
     is_agency = any(word in company.lower() for word in ['recruit', 'agency', 'talent', 'staffing'])
 
     reasons = "\n".join([f"- {s}" for s in strengths]) if strengths else "- [Your relevant strengths here]"
 
+    # Greeting line with company name if not agency
+    greeting = f"I am writing to express my strong interest in the {job_title} role"
+    if not is_agency and company:
+        greeting += f" at {company}"
+    greeting += "."
+
+    # Compose letter
     letter = f"""Dear Hiring Manager,
 
-I am writing to express my strong interest in the {job_title} role. With proven experience aligned to your key requirements, I am confident in my ability to contribute effectively from day one.
+{greeting} With proven experience aligned to your key requirements, I am confident in my ability to contribute effectively from day one.
 
 Top reasons I am a strong fit for this role:
 {reasons}
@@ -58,4 +66,5 @@ Top reasons I am a strong fit for this role:
 Warm regards,  
 {candidate_name}
 """
+
     return letter
