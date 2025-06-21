@@ -83,7 +83,7 @@ with col_reset:
 
 if reset_button:
     st.session_state.clear()
-    st.experimental_rerun()
+    st.rerun()
 
 if run_button:
     if not uploaded_file:
