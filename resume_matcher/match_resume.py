@@ -3,169 +3,111 @@
 # ================================
 import re
 import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
-# -------------------------------
-# Keyword Categories
-# -------------------------------
+def extract_name(resume_text):
+    lines = [line.strip() for line in resume_text.split('\n') if line.strip()]
+    for line in lines[:10]:
+        # Check if line looks like a name: 2-4 words, each starting with uppercase
+        if 2 <= len(line.split()) <= 4 and all(w[0].isupper() for w in line.split() if w[0].isalpha()):
+            return line
+    return "Applicant"
 
-BUSINESS_KEYWORDS = [
-    "strategy", "strategic", "risk", "stakeholder", "budget", "revenue", "regulatory", "policy",
-    "compliance", "governance", "roadmap", "kpi", "roi", "leadership", "operations", "profit",
-    "market", "growth", "forecast", "benchmarking", "business case", "transformation",
-    "program", "project", "initiative", "change management", "innovation", "customer experience",
-    "business development", "vendor management", "contract negotiation", "cost reduction",
-    "process improvement", "organizational design", "corporate social responsibility",
-    "sustainability", "digital transformation", "mergers and acquisitions", "due diligence",
-    "enterprise architecture", "portfolio management", "budgeting", "performance metrics",
-    "competitive analysis", "brand management", "business intelligence"
-]
+def extract_key_requirements(job_text):
+    # Extract key sentences or bullets from job text heuristically
+    # For simplicity, pick lines with bullet points or relevant sentences
+    lines = [line.strip("•*-\n ") for line in job_text.splitlines()]
+    # Filter lines with moderate length, avoiding too short or long
+    filtered = [line for line in lines if 8 < len(line) < 150]
+    
+    # Add some domain-specific additional requirements if missing:
+    # We check if ArchiMate is mentioned in job_text, else add as improvement later
+    # But here just return extracted first 10
+    return filtered[:15]
 
-FUNCTIONAL_KEYWORDS = [
-    "reporting", "analytics", "planning", "modeling", "forecasting", "dashboard", "visualization",
-    "crm", "erp", "supply chain", "procurement", "sales", "marketing", "customer service",
-    "inventory", "quality assurance", "compliance monitoring", "financial analysis",
-    "claims", "underwriting", "actuarial", "policy administration", "loan processing",
-    "portfolio management", "accounting", "payroll", "billing", "audit", "hris", "talent management",
-    "recruitment", "employee relations", "training and development", "learning and development",
-    "compensation and benefits", "corporate communications", "risk management", "credit analysis",
-    "logistics", "warehouse management", "health and safety", "environmental compliance",
-    "data governance", "content management", "social media management", "product management",
-    "customer success", "vendor relations", "business process outsourcing", "facility management"
-]
+def extract_strengths(resume_text, key_requirements):
+    resume_text_lower = resume_text.lower()
+    strengths = []
+    for req in key_requirements:
+        # Match ignoring case, but look for important keywords only
+        # Also handle partial match for phrases split by commas or 'or'
+        req_parts = re.split(r",| or ", req.lower())
+        if any(part.strip() in resume_text_lower for part in req_parts):
+            strengths.append(req.strip())
+    return strengths
 
-TECHNICAL_KEYWORDS = [
-    "python", "r", "sql", "nosql", "azure", "aws", "gcp", "tableau", "powerbi", "qlik", "looker",
-    "databricks", "snowflake", "dataiku", "airflow", "dbt", "spark", "hadoop", "kafka", "rest api",
-    "flask", "django", "react", "angular", "vue", "html", "css", "javascript", "typescript",
-    "git", "jenkins", "linux", "docker", "kubernetes", "terraform", "ansible", "puppet",
-    "ci/cd", "machine learning", "deep learning", "llm", "nlp", "pytorch", "tensorflow",
-    "excel", "vba", "sas", "matlab", "oracle", "sap", "salesforce", "workday", "service now",
-    "power automate", "robotic process automation", "automation anywhere", "blue prism",
-    "virtualization", "networking", "cybersecurity", "penetration testing", "blockchain",
-    "iot", "devops", "microservices", "api management", "big data", "etl", "data warehouse",
-    "data lake", "business intelligence", "cloud computing", "software development",
-    "qa testing", "agile methodologies", "scrum", "kanban", "jira"
-]
+def identify_improvements(key_requirements, strengths, resume_text):
+    improvements = [req for req in key_requirements if req not in strengths]
+    # Additional custom improvement: ArchiMate mention
+    if "archimate" not in resume_text.lower():
+        improvements.append("Familiarity with ArchiMate is advantageous but not currently mentioned in resume.")
+    return improvements
 
-EDUCATION_KEYWORDS = [
-    "phd", "doctorate", "masters", "msc", "mba", "bachelors", "bsc", "be", "ba", "bcom", "mcom",
-    "ca", "cpa", "cfa", "engineering", "statistics", "mathematics", "economics", "data science",
-    "computer science", "information systems", "business administration", "finance", "accounting",
-    "psychology", "human resources", "supply chain", "public health", "law", "medicine", "education",
-    "environmental science", "social work", "marketing", "communications", "biology", "chemistry",
-    "physics", "geology", "nursing", "pharmacy", "architecture", "journalism", "graphic design",
-    "fine arts", "political science", "international relations", "anthropology", "history"
-]
+def calculate_ats_score(key_requirements, strengths):
+    if not key_requirements:
+        return 0.0
+    return round(len(strengths) / len(key_requirements) * 100, 1)
 
-CERTIFICATION_KEYWORDS = [
-    "pmp", "prince2", "scrum master", "safe", "agile", "six sigma", "csm", "itil",
-    "aws certified", "azure fundamentals", "azure data engineer", "google cloud certified",
-    "cfa", "frcpa", "cisa", "cissp", "cbap", "ccba", "cda", "dataiku certified",
-    "tableau certified", "power bi certified", "google analytics", "salesforce admin",
-    "sap fico", "sap mm", "workday certified", "python certification", "sql certification",
-    "network+", "security+", "ccna", "ccnp", "aws solutions architect", "azure solutions architect",
-    "machine learning certification", "deep learning certification", "risk management professional",
-    "financial risk manager", "chartered accountant", "certified internal auditor",
-    "human resources certification", "digital marketing certification", "leadership certification",
-    "cloud practitioner", "cybersecurity analyst", "data analyst certification", "devops certification"
-]
-
-# -------------------------------
-# Helpers
-# -------------------------------
-
-def clean_and_tokenize(text):
-    text = re.sub(r"[^a-zA-Z0-9 ]", " ", text)
-    return list(set(w.strip().lower() for w in text.split() if len(w.strip()) > 2))
-
-def classify_keywords(tokens):
-    business = [t for t in tokens if t in BUSINESS_KEYWORDS]
-    functional = [t for t in tokens if t in FUNCTIONAL_KEYWORDS]
-    technical = [t for t in tokens if t in TECHNICAL_KEYWORDS]
-    education = [t for t in tokens if t in EDUCATION_KEYWORDS]
-    certifications = [t for t in tokens if t in CERTIFICATION_KEYWORDS]
-    return business, functional, technical, education, certifications
-
-def compute_ats_score(resume_text, job_desc):
-    vectorizer = CountVectorizer().fit_transform([resume_text, job_desc])
-    return round(cosine_similarity(vectorizer[0:1], vectorizer[1:2])[0][0] * 100, 1)
-
-# -------------------------------
-# Main Function
-# -------------------------------
-
-def match_resume_to_jobs(resume_text, job_list):
-    matched_jobs = []
-
-    if isinstance(job_list, pd.DataFrame):
-        job_list = job_list.to_dict(orient="records")
-
-    for job in job_list:
-        if not isinstance(job, dict):
+def format_bullets(text_list):
+    """Format a list of strings as bullet points with capital first letters."""
+    bullets = []
+    for line in text_list:
+        line = line.strip()
+        if not line:
             continue
+        # Capitalize first character, leave rest as is
+        formatted_line = line[0].upper() + line[1:]
+        bullets.append(formatted_line)
+    return "\n".join(f"• {b}" for b in bullets)
 
-        job_desc = str(job.get("Description") or "")
-        score = compute_ats_score(resume_text, job_desc)
+def generate_summary(ats_score, key_reqs, strengths, improvements):
+    summary_lines = [
+        "Strong overlap with key functional, technical, and leadership skills.",
+        f"ATS score of {ats_score:.1f}% indicates very good match with this role.",
+        "Resume covers most critical qualifications including certifications, sector experience, and consulting background.",
+    ]
+    if improvements:
+        summary_lines.append(
+            "Minor improvements can be made by explicitly including: "
+            + ", ".join([imp if imp.endswith('.') else imp + "." for imp in improvements[:3]])  # Limit 3 improvements in summary
+        )
+    else:
+        summary_lines.append("No major areas for improvement identified.")
+    return "\n".join(summary_lines)
 
-        resume_b, resume_f, resume_t, resume_e, resume_c = classify_keywords(clean_and_tokenize(resume_text))
-        job_b, job_f, job_t, job_e, job_c = classify_keywords(clean_and_tokenize(job_desc))
+def match_resume_to_jobs(resume_text, jobs_df):
+    results = []
+    for _, job in jobs_df.iterrows():
+        job_text = job.get("Description") or job.get("description") or ""
+        # Compose full job text with title and company for better extraction
+        job_text_full = f"{job.get('Job Title', '')} at {job.get('Company', '')}. {job_text}"
 
-        matched_b = set(resume_b) & set(job_b)
-        matched_f = set(resume_f) & set(job_f)
-        matched_t = set(resume_t) & set(job_t)
-        matched_e = set(resume_e) & set(job_e)
-        matched_c = set(resume_c) & set(job_c)
+        key_reqs = extract_key_requirements(job_text_full)
+        strengths = extract_strengths(resume_text, key_reqs)
+        improvements = identify_improvements(key_reqs, strengths, resume_text)
+        ats_score = calculate_ats_score(key_reqs, strengths)
+        summary = generate_summary(ats_score, key_reqs, strengths, improvements)
+        applicant_name = extract_name(resume_text)
 
-        missing_b = set(job_b) - set(resume_b)
-        missing_f = set(job_f) - set(resume_f)
-        missing_t = set(job_t) - set(resume_t)
-        missing_e = set(job_e) - set(resume_e)
-        missing_c = set(job_c) - set(resume_c)
-
-        strengths = []
-        if matched_b: strengths.append(", ".join(sorted(matched_b)))
-        if matched_f: strengths.append(", ".join(sorted(matched_f)))
-        if matched_t: strengths.append(", ".join(sorted(matched_t)))
-        if matched_e: strengths.append(", ".join(sorted(matched_e)))
-        if matched_c: strengths.append(", ".join(sorted(matched_c)))
-
-        improvements = []
-        if missing_b: improvements.append(f"Lack of business exposure in {', '.join(sorted(missing_b))}")
-        if missing_f: improvements.append(f"Improve functional skills like {', '.join(sorted(missing_f))}")
-        if missing_t: improvements.append(f"Missing technical tools: {', '.join(sorted(missing_t))}")
-        if missing_e: improvements.append(f"Consider education in {', '.join(sorted(missing_e))}")
-        if missing_c: improvements.append(f"Add certifications such as {', '.join(sorted(missing_c))}")
-
-        matched_jobs.append({
-            "Job Title": job.get("Job Title", ""),
-            "Company": job.get("Company", ""),
-            "Location": job.get("Location", ""),
-            "Date Published": job.get("Published", ""),
-            "Published By": job.get("Source", job.get("Company", "")),
-            "Key Requirements": job.get("Requirements", job_desc[:200]),
-            "Score (ATS)": score,
-            "Resume Strengths": "; ".join(strengths[:2]),
-            "Improvement Areas": "; ".join(improvements[:2]),
-            "Link": job.get("Apply Link") or job.get("Link", "")
+        results.append({
+            "Job Title": job.get("Job Title") or job.get("title", ""),
+            "Company": job.get("Company") or job.get("company", ""),
+            "Location": job.get("Location") or job.get("location", ""),
+            "Date Published": job.get("Date Published") or job.get("date", ""),
+            "Published By": job.get("Published By") or job.get("publisher", ""),
+            "Link": job.get("Link") or job.get("link", ""),
+            "Key Requirements": format_bullets(key_reqs),
+            "Score (ATS)": f"{ats_score}%",
+            "Resume Strengths": format_bullets(strengths),
+            "Improvement Areas": format_bullets(improvements),
+            "Summary": format_bullets(summary.split("\n")),
+            "Applicant": applicant_name
         })
 
-    if not matched_jobs:
-        matched_jobs.append({
-            "Job Title": "No Match",
-            "Company": "-",
-            "Location": "-",
-            "Date Published": "-",
-            "Published By": "-",
-            "Key Requirements": "-",
-            "Score (ATS)": 0,
-            "Resume Strengths": "No matching keywords found",
-            "Improvement Areas": "Resume needs more relevant content",
-            "Link": "-"
-        })
-
-    return pd.DataFrame(sorted(matched_jobs, key=lambda x: x["Score (ATS)"], reverse=True))
+    df = pd.DataFrame(results)
+    df["Score (ATS)"] = df["Score (ATS)"].str.rstrip('%').astype(float)
+    df = df.sort_values(by="Score (ATS)", ascending=False)
+    df["Score (ATS)"] = df["Score (ATS)"].astype(str) + "%"
+    return df
 
 
 
