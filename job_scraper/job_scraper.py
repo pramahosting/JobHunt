@@ -4,6 +4,7 @@
 import re
 import requests
 from datetime import datetime, timedelta
+import pandas as pd
 
 # --- Adzuna API credentials ---
 ADZUNA_APP_ID = "638c0962"
