@@ -3,6 +3,9 @@
 # ================================
 import sys
 import os
+# Add parent directory (project_root) to sys.path to allow imports of sibling folders
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 import time
 import html
