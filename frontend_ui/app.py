@@ -9,7 +9,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import streamlit as st
 import time
 import html
-import pandas as pd
 
 # Set config first
 st.set_page_config(layout="wide")
@@ -98,6 +97,7 @@ if run_button:
             import docx2txt
             import pdfplumber
             import fitz
+            import pandas as pd
 
             from job_scraper.job_scraper import get_all_jobs
             from resume_matcher.match_resume import match_resume_to_jobs
